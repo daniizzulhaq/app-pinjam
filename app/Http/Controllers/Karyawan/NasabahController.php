@@ -64,21 +64,17 @@ class NasabahController extends Controller
 
     public function show(Nasabah $nasabah)
     {
-        abort_if($nasabah->user_id !== auth()->id(), 403);
         $nasabah->load('pinjaman.pembayaran');
         return view('karyawan.nasabah.show', compact('nasabah'));
     }
 
     public function edit(Nasabah $nasabah)
     {
-        abort_if($nasabah->user_id !== auth()->id(), 403);
         return view('karyawan.nasabah.edit', compact('nasabah'));
     }
 
     public function update(Request $request, Nasabah $nasabah)
     {
-        abort_if($nasabah->user_id !== auth()->id(), 403);
-
         $validated = $request->validate([
             'no_ktp'        => ['required', 'string', 'size:16', 'unique:nasabah,no_ktp,'.$nasabah->id],
             'nama_lengkap'  => ['required', 'string', 'max:255'],
@@ -122,8 +118,6 @@ class NasabahController extends Controller
 
     public function destroy(Nasabah $nasabah)
     {
-        abort_if($nasabah->user_id !== auth()->id(), 403);
-
         if ($nasabah->foto_ktp) {
             Storage::disk('public')->delete($nasabah->foto_ktp);
         }
