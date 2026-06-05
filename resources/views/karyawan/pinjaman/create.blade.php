@@ -126,7 +126,7 @@
                 </div>
             </div>
 
-            {{-- Simulasi Cicilan --}}
+            {{-- Simulasi Pinjaman --}}
             <div id="simulasi" class="hidden mb-5 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                 <h4 class="text-sm font-semibold text-emerald-700 mb-3">📊 Simulasi Pinjaman</h4>
                 <div class="grid grid-cols-2 gap-3 text-sm">
@@ -138,7 +138,8 @@
                         <p class="text-gray-500 text-xs">Total Pinjaman</p>
                         <p id="sim_total" class="font-semibold text-gray-800">-</p>
                     </div>
-                    <div class="col-span-2">
+                    {{-- Cicilan hanya tampil untuk tenor bulanan --}}
+                    <div class="col-span-2" id="sim_cicilan_wrap">
                         <p id="sim_cicilan_label" class="text-gray-500 text-xs">Cicilan per Bulan</p>
                         <p id="sim_cicilan" class="font-bold text-emerald-700 text-lg">-</p>
                     </div>
@@ -197,12 +198,18 @@ function hitungCicilan() {
 
     const fmt = v => 'Rp ' + v.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
-    document.getElementById('sim_bunga').textContent         = fmt(totalBunga);
-    document.getElementById('sim_total').textContent         = fmt(totalPinjaman);
-    document.getElementById('sim_cicilan').textContent       = fmt(cicilan);
-    document.getElementById('sim_cicilan_label').textContent = tipe === 'harian'
-        ? 'Cicilan per Hari'
-        : 'Cicilan per Bulan';
+    document.getElementById('sim_bunga').textContent = fmt(totalBunga);
+    document.getElementById('sim_total').textContent = fmt(totalPinjaman);
+
+    // Cicilan hanya tampil untuk bulanan
+    const cicilanWrap = document.getElementById('sim_cicilan_wrap');
+    if (tipe === 'harian') {
+        cicilanWrap.classList.add('hidden');
+    } else {
+        cicilanWrap.classList.remove('hidden');
+        document.getElementById('sim_cicilan_label').textContent = 'Cicilan per Bulan';
+        document.getElementById('sim_cicilan').textContent       = fmt(cicilan);
+    }
 
     document.getElementById('simulasi').classList.remove('hidden');
 }
