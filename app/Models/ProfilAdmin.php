@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class ProfilAdmin extends Model
 {
@@ -24,7 +25,6 @@ class ProfilAdmin extends Model
 
     /**
      * Selalu ambil satu baris (singleton pattern).
-     * Jika belum ada, buat dengan nilai default.
      */
     public static function profil(): static
     {
@@ -34,15 +34,15 @@ class ProfilAdmin extends Model
     }
 
     /**
-     * URL logo atau placeholder jika belum ada.
+     * URL logo — pakai Storage::disk('public') sama seperti nasabah & bukti pembayaran.
      */
     public function getLogoUrlAttribute(): string
     {
-        if ($this->logo && file_exists(public_path('storage/' . $this->logo))) {
-            return asset('storage/' . $this->logo);
+        if ($this->logo && Storage::disk('public')->exists($this->logo)) {
+            return Storage::disk('public')->url($this->logo);
         }
 
-        // Placeholder: inisial nama lembaga via UI Avatars
+        // Placeholder jika logo belum ada
         $nama = urlencode($this->nama_lembaga ?? 'P');
         return "https://ui-avatars.com/api/?name={$nama}&background=1e40af&color=fff&size=200";
     }
