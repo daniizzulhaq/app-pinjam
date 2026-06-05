@@ -12,7 +12,7 @@ class PembayaranController extends Controller
     public function create(Pinjaman $pinjaman)
     {
         // Hanya karyawan yang menginput pinjaman ini yang boleh akses
-        if ($pinjaman->user_id !== auth()->id()) {
+        if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
         }
@@ -36,7 +36,7 @@ class PembayaranController extends Controller
     public function store(Request $request, Pinjaman $pinjaman)
     {
         // Hanya karyawan yang menginput pinjaman ini yang boleh store
-        if ($pinjaman->user_id !== auth()->id()) {
+        if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
         }
@@ -125,7 +125,7 @@ class PembayaranController extends Controller
 
     public function invoice(Pinjaman $pinjaman, Pembayaran $pembayaran)
     {
-        if ($pinjaman->user_id !== auth()->id()) {
+        if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
         }
