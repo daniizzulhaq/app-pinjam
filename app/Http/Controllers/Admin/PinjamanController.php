@@ -29,6 +29,36 @@ class PinjamanController extends Controller
         return view('admin.pinjaman.show', compact('pinjaman'));
     }
 
+    /**
+     * STEP 1 — Admin upload bukti transfer ke karyawan
+     * Status: menunggu_approval → menunggu_transfer_karyawan
+     */
+    public function uploadBuktiAdmin(Request $request, Pinjaman $pinjaman)
+    {
+        if ($pinjaman->status !== 'menunggu_approval') {
+            return back()->with('error', 'Pinjaman tidak dalam status menunggu approval.');
+        }
+
+        $request->validate([
+            'bukti_transfer_admin' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $path = $request->file('bukti_transfer_admin')
+            ->store('bukti-transfer/admin', 'public');
+
+        $pinjaman->update([
+            'bukti_transfer_admin' => $path,
+            'tgl_transfer_admin'   => now(),
+            'status'               => 'menunggu_transfer_karyawan',
+        ]);
+
+        return back()->with('success', 'Bukti transfer berhasil dikirim ke karyawan.');
+    }
+
+    /**
+     * STEP 3 — Admin approve setelah karyawan upload bukti transfer ke nasabah
+     * Status: menunggu_konfirmasi → aktif / ditolak
+     */
     public function approval(Request $request, Pinjaman $pinjaman)
     {
         $validated = $request->validate([
@@ -36,12 +66,11 @@ class PinjamanController extends Controller
             'catatan_approval' => ['nullable', 'string', 'max:500'],
         ]);
 
-        if ($pinjaman->status !== 'menunggu_approval') {
-            return back()->with('error', 'Pinjaman sudah diproses sebelumnya.');
+        if ($pinjaman->status !== 'menunggu_konfirmasi') {
+            return back()->with('error', 'Pinjaman belum siap untuk di-approve. Tunggu karyawan upload bukti transfer ke nasabah.');
         }
 
         $updateData = [
-            'status'           => $validated['action'],
             'catatan_approval' => $validated['catatan_approval'],
             'tanggal_approval' => now(),
             'approved_by'      => auth()->id(),
@@ -49,8 +78,6 @@ class PinjamanController extends Controller
 
         if ($validated['action'] === 'disetujui') {
             $tipe = $pinjaman->tenor_tipe ?? 'bulanan';
-
-            // Hitung tanggal jatuh tempo sesuai tipe tenor
             $tanggalJatuhTempo = $tipe === 'harian'
                 ? now()->addDays($pinjaman->tenor_bulan)
                 : now()->addMonths($pinjaman->tenor_bulan);
@@ -58,11 +85,13 @@ class PinjamanController extends Controller
             $updateData['status']              = 'aktif';
             $updateData['tanggal_mulai']       = now();
             $updateData['tanggal_jatuh_tempo'] = $tanggalJatuhTempo;
+        } else {
+            $updateData['status'] = 'ditolak';
         }
 
         $pinjaman->update($updateData);
 
-        $msg = $validated['action'] === 'disetujui' ? 'Pinjaman disetujui.' : 'Pinjaman ditolak.';
+        $msg = $validated['action'] === 'disetujui' ? 'Pinjaman disetujui dan aktif.' : 'Pinjaman ditolak.';
         return redirect()->route('admin.pinjaman.index')->with('success', $msg);
     }
 

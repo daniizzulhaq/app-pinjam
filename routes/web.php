@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,11 @@ Route::middleware(['auth', 'is_admin'])
             [Admin\PinjamanController::class, 'approval'])
             ->name('pinjaman.approval');
 
+        // Upload bukti transfer admin ke karyawan
+        Route::post('/pinjaman/{pinjaman}/upload-bukti-admin',
+            [Admin\PinjamanController::class, 'uploadBuktiAdmin'])
+            ->name('pinjaman.upload-bukti-admin');
+
         Route::get('/pinjaman-jatuh-tempo',
             [Admin\PinjamanController::class, 'jatuhTempo'])
             ->name('pinjaman.jatuh-tempo');
@@ -48,7 +54,7 @@ Route::middleware(['auth', 'is_admin'])
         Route::get('/pembayaran-denda',
             [Admin\PembayaranController::class, 'denda'])
             ->name('pembayaran.denda');
-        
+
         Route::get('/pembayaran/{pembayaran}/invoice',
             [Admin\PembayaranController::class, 'invoice'])
             ->name('pembayaran.invoice');
@@ -56,7 +62,6 @@ Route::middleware(['auth', 'is_admin'])
         // ==========================
         // PROFIL ADMIN
         // ==========================
-
         Route::get('/profil', [Admin\ProfilController::class, 'index'])
             ->name('profil.index');
 
@@ -66,7 +71,6 @@ Route::middleware(['auth', 'is_admin'])
         // ==========================
         // LAPORAN
         // ==========================
-
         Route::prefix('laporan')
             ->name('laporan.')
             ->group(function () {
@@ -101,7 +105,6 @@ Route::middleware(['auth', 'is_admin'])
             });
     });
 
-
 // ======================================================
 // KARYAWAN ROUTES
 // ======================================================
@@ -115,6 +118,11 @@ Route::middleware(['auth', 'is_karyawan'])
 
         Route::resource('nasabah', Karyawan\NasabahController::class);
         Route::resource('pinjaman', Karyawan\PinjamanController::class);
+
+        // Upload bukti transfer karyawan ke nasabah
+        Route::post('/pinjaman/{pinjaman}/upload-bukti-karyawan',
+            [Karyawan\PinjamanController::class, 'uploadBuktiKaryawan'])
+            ->name('pinjaman.upload-bukti-karyawan');
 
         // Pembayaran nested di bawah pinjaman
         Route::get('/pinjaman/{pinjaman}/pembayaran/create',
@@ -132,6 +140,7 @@ Route::middleware(['auth', 'is_karyawan'])
         // ==========================
         // DENDA
         // ==========================
-        Route::get('/denda', [Karyawan\DendaController::class, 'index'])
+        Route::get('/denda',
+            [Karyawan\DendaController::class, 'index'])
             ->name('denda.index');
     });

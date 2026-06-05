@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/karyawan/pinjaman/create.blade.php   --}}
+{{-- ============================================================ --}}
 @extends('layouts.karyawan')
 @section('title', 'Ajukan Pinjaman')
 @section('page-title', 'Ajukan Pinjaman Baru')
@@ -42,6 +45,55 @@
                 @enderror
             </div>
 
+            {{-- Tanggal Pengajuan --}}
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Pengajuan
+                </label>
+
+                {{-- Toggle otomatis / manual --}}
+                <div class="flex gap-3 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tgl_mode" value="otomatis" id="tgl_otomatis"
+                               class="accent-emerald-600"
+                               {{ old('tanggal_pengajuan') ? '' : 'checked' }}
+                               onchange="toggleTanggal()">
+                        <span class="text-sm text-gray-700">Otomatis (hari ini)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tgl_mode" value="manual" id="tgl_manual"
+                               class="accent-emerald-600"
+                               {{ old('tanggal_pengajuan') ? 'checked' : '' }}
+                               onchange="toggleTanggal()">
+                        <span class="text-sm text-gray-700">Input manual</span>
+                    </label>
+                </div>
+
+                {{-- Preview otomatis --}}
+                <div id="tgl_otomatis_preview"
+                     class="{{ old('tanggal_pengajuan') ? 'hidden' : '' }} flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-500">
+                    <i class="fa fa-calendar-check text-emerald-500"></i>
+                    <span>{{ now()->translatedFormat('d F Y') }}</span>
+                    <span class="text-xs text-gray-400">(tanggal hari ini, terisi otomatis)</span>
+                </div>
+
+                {{-- Input manual --}}
+                <div id="tgl_manual_input" class="{{ old('tanggal_pengajuan') ? '' : 'hidden' }}">
+                    <input type="date" name="tanggal_pengajuan"
+                           value="{{ old('tanggal_pengajuan') }}"
+                           max="{{ now()->format('Y-m-d') }}"
+                           class="w-full border {{ $errors->has('tanggal_pengajuan') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <p class="text-xs text-gray-400 mt-1">
+                        <i class="fa fa-info-circle mr-0.5"></i>
+                        Tidak boleh lebih dari hari ini
+                    </p>
+                </div>
+
+                @error('tanggal_pengajuan')
+                    <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                @enderror
+            </div>
+
             {{-- Jumlah Pinjaman --}}
             <div class="mb-5">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -75,7 +127,7 @@
                             <option value="{{ $b->id }}"
                                     data-persen="{{ $b->persentase }}"
                                 {{ old('bunga_id') == $b->id ? 'selected' : '' }}>
-                                {{ $b->nama }} ({{ $b->persentase }}%/bln)
+                                {{ $b->nama_bunga }} ({{ $b->persentase }}%/bln)
                             </option>
                         @endforeach
                     </select>
@@ -138,7 +190,6 @@
                         <p class="text-gray-500 text-xs">Total Pinjaman</p>
                         <p id="sim_total" class="font-semibold text-gray-800">-</p>
                     </div>
-                    {{-- Cicilan hanya tampil untuk tenor bulanan --}}
                     <div class="col-span-2" id="sim_cicilan_wrap">
                         <p id="sim_cicilan_label" class="text-gray-500 text-xs">Cicilan per Bulan</p>
                         <p id="sim_cicilan" class="font-bold text-emerald-700 text-lg">-</p>
@@ -171,6 +222,19 @@
 </div>
 
 <script>
+// ---- Toggle tanggal otomatis / manual ----
+function toggleTanggal() {
+    const isManual = document.getElementById('tgl_manual').checked;
+    document.getElementById('tgl_otomatis_preview').classList.toggle('hidden', isManual);
+    document.getElementById('tgl_manual_input').classList.toggle('hidden', !isManual);
+
+    // Kosongkan input tanggal saat kembali ke otomatis
+    if (!isManual) {
+        document.querySelector('[name=tanggal_pengajuan]').value = '';
+    }
+}
+
+// ---- Hitung simulasi cicilan ----
 function hitungCicilan() {
     const jumlah    = parseFloat(document.querySelector('[name=jumlah_pinjaman]').value) || 0;
     const bungaSel  = document.querySelector('[name=bunga_id]');
@@ -187,7 +251,6 @@ function hitungCicilan() {
 
     let totalBunga;
     if (tipe === 'harian') {
-        // Flat 1 bulan penuh, tidak prorate
         totalBunga = jumlah * (persenBln / 100);
     } else {
         totalBunga = jumlah * (persenBln / 100) * periode;
@@ -201,7 +264,6 @@ function hitungCicilan() {
     document.getElementById('sim_bunga').textContent = fmt(totalBunga);
     document.getElementById('sim_total').textContent = fmt(totalPinjaman);
 
-    // Cicilan hanya tampil untuk bulanan
     const cicilanWrap = document.getElementById('sim_cicilan_wrap');
     if (tipe === 'harian') {
         cicilanWrap.classList.add('hidden');

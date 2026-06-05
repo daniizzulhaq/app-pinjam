@@ -40,6 +40,7 @@ class PinjamanController extends Controller
             'tenor_id'          => ['required', 'exists:tenor,id'],
             'jumlah_pinjaman'   => ['required', 'numeric', 'min:100000'],
             'catatan_pengajuan' => ['nullable', 'string', 'max:500'],
+            'tanggal_pengajuan' => ['nullable', 'date', 'before_or_equal:today'],
         ]);
 
         $bunga = BungaPinjaman::findOrFail($validated['bunga_id']);
@@ -48,15 +49,17 @@ class PinjamanController extends Controller
         $jumlah  = $validated['jumlah_pinjaman'];
         $periode = $tenor->bulan;
 
-        // Flat 1 bulan penuh, tidak prorate
         if ($tenor->tipe === 'harian') {
             $totalBunga = $jumlah * ($bunga->persentase / 100);
         } else {
             $totalBunga = $jumlah * ($bunga->persentase / 100) * $periode;
         }
 
-        $totalPinjaman = $jumlah + $totalBunga;
-        $cicilan       = $totalPinjaman / $periode;
+        $totalPinjaman    = $jumlah + $totalBunga;
+        $cicilan          = $totalPinjaman / $periode;
+        $tanggalPengajuan = $validated['tanggal_pengajuan']
+            ? \Carbon\Carbon::parse($validated['tanggal_pengajuan'])
+            : now();
 
         Pinjaman::create([
             'no_pinjaman'       => Pinjaman::generateNoPinjaman(),
@@ -71,7 +74,7 @@ class PinjamanController extends Controller
             'cicilan_per_bulan' => $cicilan,
             'total_pinjaman'    => $totalPinjaman,
             'total_bunga'       => $totalBunga,
-            'tanggal_pengajuan' => now(),
+            'tanggal_pengajuan' => $tanggalPengajuan,
             'catatan_pengajuan' => $validated['catatan_pengajuan'],
             'status'            => 'menunggu_approval',
         ]);
@@ -89,5 +92,36 @@ class PinjamanController extends Controller
 
         $pinjaman->load(['nasabah', 'pembayaran', 'bunga', 'tenor']);
         return view('karyawan.pinjaman.show', compact('pinjaman'));
+    }
+
+    /**
+     * STEP 2 — Karyawan upload bukti transfer ke nasabah
+     * Status: menunggu_transfer_karyawan → menunggu_konfirmasi
+     */
+    public function uploadBuktiKaryawan(Request $request, Pinjaman $pinjaman)
+    {
+        if ((int) $pinjaman->user_id !== (int) auth()->id()) {
+            return redirect()->route('karyawan.pinjaman.index')
+                ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
+        }
+
+        if ($pinjaman->status !== 'menunggu_transfer_karyawan') {
+            return back()->with('error', 'Belum ada bukti transfer dari admin, atau status tidak sesuai.');
+        }
+
+        $request->validate([
+            'bukti_transfer_karyawan' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $path = $request->file('bukti_transfer_karyawan')
+            ->store('bukti-transfer/karyawan', 'public');
+
+        $pinjaman->update([
+            'bukti_transfer_karyawan' => $path,
+            'tgl_transfer_karyawan'   => now(),
+            'status'                  => 'menunggu_konfirmasi',
+        ]);
+
+        return back()->with('success', 'Bukti transfer ke nasabah berhasil diupload. Menunggu konfirmasi admin.');
     }
 }
