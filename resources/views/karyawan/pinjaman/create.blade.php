@@ -1,6 +1,3 @@
-{{-- ============================================================ --}}
-{{-- FILE: resources/views/karyawan/pinjaman/create.blade.php   --}}
-{{-- ============================================================ --}}
 @extends('layouts.karyawan')
 @section('title', 'Ajukan Pinjaman')
 @section('page-title', 'Ajukan Pinjaman Baru')
@@ -94,7 +91,6 @@
                             class="w-full border {{ $errors->has('tenor_id') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                             onchange="hitungCicilan()">
                         <option value="">-- Pilih Tenor --</option>
-                        {{-- Grup: Bulanan --}}
                         @php
                             $tenorBulanan = $tenor->where('tipe', 'bulanan');
                             $tenorHarian  = $tenor->where('tipe', 'harian');
@@ -111,7 +107,6 @@
                             @endforeach
                         </optgroup>
                         @endif
-                        {{-- Grup: Harian --}}
                         @if($tenorHarian->count())
                         <optgroup label="☀️ Harian">
                             @foreach($tenorHarian as $t)
@@ -189,12 +184,14 @@ function hitungCicilan() {
         return;
     }
 
-    // Jika harian: konversi bunga bulanan → harian (/30)
-    const bungaPerPeriode = tipe === 'harian'
-        ? (persenBln / 100 / 30)
-        : (persenBln / 100);
+    let totalBunga;
+    if (tipe === 'harian') {
+        // Flat 1 bulan penuh, tidak prorate
+        totalBunga = jumlah * (persenBln / 100);
+    } else {
+        totalBunga = jumlah * (persenBln / 100) * periode;
+    }
 
-    const totalBunga    = jumlah * bungaPerPeriode * periode;
     const totalPinjaman = jumlah + totalBunga;
     const cicilan       = totalPinjaman / periode;
 

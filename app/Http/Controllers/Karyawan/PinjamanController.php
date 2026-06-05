@@ -1,11 +1,11 @@
 <?php
 
 namespace App\Http\Controllers\Karyawan;
- 
+
 use App\Http\Controllers\Controller;
 use App\Models\{Pinjaman, Nasabah, BungaPinjaman, Tenor};
 use Illuminate\Http\Request;
- 
+
 class PinjamanController extends Controller
 {
     public function index(Request $request)
@@ -15,23 +15,23 @@ class PinjamanController extends Controller
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->latest()
             ->paginate(15);
- 
+
         return view('karyawan.pinjaman.index', compact('pinjaman'));
     }
- 
+
     public function create(Request $request)
     {
         $nasabah = Nasabah::where('user_id', auth()->id())->get();
         $bunga   = BungaPinjaman::aktif()->get();
         $tenor   = Tenor::aktif()->get();
- 
+
         $nasabahDipilih = $request->nasabah_id
             ? Nasabah::find($request->nasabah_id)
             : null;
- 
+
         return view('karyawan.pinjaman.create', compact('nasabah', 'bunga', 'tenor', 'nasabahDipilih'));
     }
- 
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -48,13 +48,13 @@ class PinjamanController extends Controller
         $jumlah  = $validated['jumlah_pinjaman'];
         $periode = $tenor->bulan;
 
+        // Flat 1 bulan penuh, tidak prorate
         if ($tenor->tipe === 'harian') {
-            $bungaPerPeriode = $bunga->persentase / 100 / 30;
+            $totalBunga = $jumlah * ($bunga->persentase / 100);
         } else {
-            $bungaPerPeriode = $bunga->persentase / 100;
+            $totalBunga = $jumlah * ($bunga->persentase / 100) * $periode;
         }
 
-        $totalBunga    = $jumlah * $bungaPerPeriode * $periode;
         $totalPinjaman = $jumlah + $totalBunga;
         $cicilan       = $totalPinjaman / $periode;
 
@@ -79,10 +79,9 @@ class PinjamanController extends Controller
         return redirect()->route('karyawan.pinjaman.index')
                          ->with('success', 'Pengajuan pinjaman berhasil dikirim, menunggu approval admin.');
     }
- 
+
     public function show(Pinjaman $pinjaman)
     {
-        // Gunakan == (loose) bukan === (strict) agar int vs string tidak masalah
         if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
