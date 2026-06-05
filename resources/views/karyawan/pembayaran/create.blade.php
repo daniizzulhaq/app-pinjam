@@ -315,7 +315,6 @@
                 </div>
             </div>
             @else
-            {{-- Tidak ada denda --}}
             <div class="mb-5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-emerald-700">
                 <i class="fa fa-circle-check"></i>
                 <span>Tidak ada denda keterlambatan</span>
@@ -366,8 +365,8 @@
 
             {{-- Ringkasan --}}
             <div id="ringkasan" class="hidden mb-5 rounded-xl p-4 text-sm border">
-                <h4 class="font-semibold mb-2" id="ring_judul">✅ Ringkasan Pembayaran</h4>
-                <div class="space-y-1 text-gray-700" id="ring_detail"></div>
+                <h4 class="font-semibold mb-3" id="ring_judul">✅ Ringkasan Pembayaran</h4>
+                <div class="space-y-1.5 text-gray-700" id="ring_detail"></div>
             </div>
 
             {{-- Actions --}}
@@ -425,6 +424,7 @@ function updateRingkasan(val) {
     const waiveEl    = document.getElementById('denda_diwaive');
     const isWaive    = waiveEl ? waiveEl.checked : false;
     const dendaAktif = isWaive ? 0 : dendaJumlah;
+    const totalBayar = bayar + dendaAktif;
 
     if (!val || bayar <= 0) {
         document.getElementById('ringkasan').classList.add('hidden');
@@ -440,21 +440,26 @@ function updateRingkasan(val) {
             judul = '🔄 Bayar Bunga — Tenor Diperpanjang';
             warna = 'bg-orange-50 border-orange-200 text-orange-700';
             html  = `
-                <div class="flex justify-between"><span>Bunga dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
-                <div class="flex justify-between"><span>Pokok tetap</span><span class="font-bold">${fmt(pokok)}</span></div>
-                ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
+                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bayar)}</span></div>
+                <div class="flex justify-between"><span>Pokok (tetap)</span><span>${fmt(pokok)}</span></div>
+                ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
                 ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
-                <div class="flex justify-between border-t pt-1 mt-1"><span>Jatuh tempo mundur</span><span class="font-bold">+${tenorHari} hari</span></div>
+                <div class="flex justify-between border-t border-orange-200 pt-2 mt-2 font-bold text-base">
+                    <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1 opacity-70"><span>Jatuh tempo mundur</span><span>+${tenorHari} hari</span></div>
             `;
         } else if (val === 'bayar_lunas') {
             judul = '✅ Bayar Lunas — Pinjaman Selesai';
             html  = `
-                <div class="flex justify-between"><span>Total dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
                 <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
                 <div class="flex justify-between"><span>Pokok</span><span>${fmt(pokok)}</span></div>
-                ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
+                ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
                 ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
-                <div class="flex justify-between border-t pt-1 mt-1"><span>Status pinjaman</span><span class="font-bold">LUNAS 🎉</span></div>
+                <div class="flex justify-between border-t border-emerald-200 pt-2 mt-2 font-bold text-base">
+                    <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1 opacity-70"><span>Status pinjaman</span><span>LUNAS 🎉</span></div>
             `;
         } else if (val === 'tidak_bayar') {
             judul = '⚠️ Catat Tunggakan';
@@ -464,10 +469,13 @@ function updateRingkasan(val) {
     } else {
         const sisa = Math.max(0, sisaHutang - bayar);
         html = `
-            <div class="flex justify-between"><span>Jumlah Dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
-            ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
+            <div class="flex justify-between"><span>Jumlah Dibayar</span><span>${fmt(bayar)}</span></div>
+            ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
             ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
-            <div class="flex justify-between border-t pt-1 mt-1"><span>Sisa Setelah Bayar</span><span class="font-bold text-red-500">${fmt(sisa)}</span></div>
+            <div class="flex justify-between border-t border-gray-200 pt-2 mt-2 font-bold text-base">
+                <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+            </div>
+            <div class="flex justify-between text-xs mt-1 opacity-70"><span>Sisa hutang setelah bayar</span><span class="text-red-500">${fmt(sisa)}</span></div>
         `;
     }
 
@@ -480,7 +488,6 @@ function updateRingkasan(val) {
 
 document.getElementById('jumlah_dibayar').addEventListener('input', () => updateRingkasan());
 
-// Salin Rekening
 function salinRekening(noRek, btn) {
     navigator.clipboard.writeText(noRek).then(() => {
         const ori = btn.innerHTML;
@@ -495,7 +502,6 @@ function salinRekening(noRek, btn) {
     });
 }
 
-// Upload Bukti
 const buktiInput       = document.getElementById('buktiInput');
 const buktiPreview     = document.getElementById('buktiPreview');
 const buktiPreviewWrap = document.getElementById('buktiPreviewWrap');

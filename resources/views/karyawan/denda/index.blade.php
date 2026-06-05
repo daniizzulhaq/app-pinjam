@@ -118,14 +118,14 @@
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center
                                             justify-center text-emerald-700 font-bold text-xs flex-shrink-0">
-                                    {{ strtoupper(substr($pinjaman->nasabah->nama ?? 'N', 0, 1)) }}
+                                    {{ strtoupper(substr($pinjaman->nasabah->nama_lengkap ?? 'N', 0, 1)) }}
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-800 leading-tight">
-                                        {{ $pinjaman->nasabah->nama ?? '-' }}
+                                        {{ $pinjaman->nasabah->nama_lengkap ?? '-' }}
                                     </p>
                                     <p class="text-xs text-gray-400 mt-0.5">
-                                        NIK: {{ $pinjaman->nasabah->nik ?? '-' }}
+                                        NIK: {{ $pinjaman->nasabah->no_ktp ?? '-' }}
                                     </p>
                                 </div>
                             </div>

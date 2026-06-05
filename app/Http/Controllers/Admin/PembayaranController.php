@@ -71,6 +71,13 @@ class PembayaranController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('admin.pembayaran.denda', compact('pembayaran'));
+        $totalDenda     = Pembayaran::where('denda', '>', 0)->sum('denda');
+        $totalTransaksi = Pembayaran::where('denda', '>', 0)->count();
+
+        return view('admin.pembayaran.denda', compact(
+            'pembayaran',
+            'totalDenda',
+            'totalTransaksi',
+        ));
     }
 }
