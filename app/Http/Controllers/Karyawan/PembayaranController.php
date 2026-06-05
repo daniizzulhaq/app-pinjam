@@ -11,17 +11,40 @@ class PembayaranController extends Controller
 {
     public function create(Pinjaman $pinjaman)
     {
-        abort_if($pinjaman->user_id !== auth()->id(), 403);
-        abort_if($pinjaman->status !== 'aktif', 403, 'Pinjaman tidak aktif.');
+        // Hanya karyawan yang menginput pinjaman ini yang boleh akses
+        if ($pinjaman->user_id !== auth()->id()) {
+            return redirect()->route('karyawan.pinjaman.index')
+                ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
+        }
 
+        // Pinjaman harus berstatus aktif
+        if ($pinjaman->status !== 'aktif') {
+            return redirect()->route('karyawan.pinjaman.show', $pinjaman)
+                ->with('error', 'Pembayaran hanya bisa diinput untuk pinjaman berstatus aktif. Status saat ini: ' . $pinjaman->status);
+        }
+
+        // Cek angsuran sudah melebihi tenor
         $angsuranKe = $pinjaman->pembayaran->count() + 1;
+        if ($angsuranKe > $pinjaman->tenor_bulan) {
+            return redirect()->route('karyawan.pinjaman.show', $pinjaman)
+                ->with('error', 'Semua angsuran sudah lunas.');
+        }
 
         return view('karyawan.pembayaran.create', compact('pinjaman', 'angsuranKe'));
     }
 
     public function store(Request $request, Pinjaman $pinjaman)
     {
-        abort_if($pinjaman->user_id !== auth()->id(), 403);
+        // Hanya karyawan yang menginput pinjaman ini yang boleh store
+        if ($pinjaman->user_id !== auth()->id()) {
+            return redirect()->route('karyawan.pinjaman.index')
+                ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
+        }
+
+        if ($pinjaman->status !== 'aktif') {
+            return redirect()->route('karyawan.pinjaman.show', $pinjaman)
+                ->with('error', 'Pinjaman tidak aktif, pembayaran tidak dapat diproses.');
+        }
 
         $validated = $request->validate([
             'tanggal_bayar'    => ['required', 'date'],
@@ -56,29 +79,24 @@ class PembayaranController extends Controller
         };
 
         // -------------------------------------------------------
-        // Upload bukti pembayaran
-        // Disimpan ke public_html/storage/bukti_pembayaran/
+        // Upload bukti — simpan ke public_html/storage/bukti_pembayaran/
         // konsisten dengan foto nasabah di public_html/storage/nasabah/
         // -------------------------------------------------------
         $buktiPath = null;
         if ($request->hasFile('bukti_pembayaran')) {
-            $file      = $request->file('bukti_pembayaran');
-            $namaFile  = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $tujuan    = public_path('storage/bukti_pembayaran');
+            $file     = $request->file('bukti_pembayaran');
+            $namaFile = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $tujuan   = public_path('storage/bukti_pembayaran');
 
-            // Buat folder jika belum ada
             if (!file_exists($tujuan)) {
                 mkdir($tujuan, 0755, true);
             }
 
             $file->move($tujuan, $namaFile);
-
-            // Yang disimpan ke DB hanya path relatif dari public_html
-            // sehingga accessor getBuktiUrlAttribute() tinggal: asset('storage/bukti_pembayaran/' . filename)
             $buktiPath = 'bukti_pembayaran/' . $namaFile;
         }
 
-        $pembayaran = Pembayaran::create([
+        Pembayaran::create([
             'no_pembayaran'               => Pembayaran::generateNoPembayaran(),
             'pinjaman_id'                 => $pinjaman->id,
             'user_id'                     => auth()->id(),
@@ -107,7 +125,11 @@ class PembayaranController extends Controller
 
     public function invoice(Pinjaman $pinjaman, Pembayaran $pembayaran)
     {
-        abort_if($pinjaman->user_id !== auth()->id(), 403);
+        if ($pinjaman->user_id !== auth()->id()) {
+            return redirect()->route('karyawan.pinjaman.index')
+                ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
+        }
+
         abort_if($pembayaran->pinjaman_id !== $pinjaman->id, 404);
 
         $pinjaman->load(['nasabah', 'karyawan']);
