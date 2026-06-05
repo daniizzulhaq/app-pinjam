@@ -78,12 +78,16 @@ class PinjamanController extends Controller
 
         if ($validated['action'] === 'disetujui') {
             $tipe = $pinjaman->tenor_tipe ?? 'bulanan';
+
+            // Gunakan tanggal_pengajuan sebagai acuan, bukan now()
+            $tanggalMulai = $pinjaman->tanggal_pengajuan;
+
             $tanggalJatuhTempo = $tipe === 'harian'
-                ? now()->addDays($pinjaman->tenor_bulan)
-                : now()->addMonths($pinjaman->tenor_bulan);
+                ? $tanggalMulai->copy()->addDays($pinjaman->tenor_bulan)
+                : $tanggalMulai->copy()->addMonths($pinjaman->tenor_bulan);
 
             $updateData['status']              = 'aktif';
-            $updateData['tanggal_mulai']       = now();
+            $updateData['tanggal_mulai']       = $tanggalMulai;
             $updateData['tanggal_jatuh_tempo'] = $tanggalJatuhTempo;
         } else {
             $updateData['status'] = 'ditolak';
