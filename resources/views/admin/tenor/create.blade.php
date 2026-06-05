@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/tenor/create.blade.php         --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 
 @section('title', 'Tambah Tenor')
@@ -18,38 +21,57 @@
 
             <div class="mb-6 pb-4 border-b border-gray-100">
                 <h2 class="text-base font-semibold text-gray-800">Data Tenor Baru</h2>
-                <p class="text-sm text-gray-400 mt-0.5">Masukkan jumlah bulan tenor</p>
+                <p class="text-sm text-gray-400 mt-0.5">Masukkan tipe dan jumlah tenor</p>
             </div>
 
             <form method="POST" action="{{ route('admin.tenor.store') }}">
                 @csrf
 
+                {{-- Label --}}
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Label Tenor
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Label Tenor</label>
                     <input type="text" name="label" value="{{ old('label') }}"
-                           placeholder="Contoh: 12 Bulan"
+                           placeholder="Contoh: 12 Bulan / 30 Hari"
                            class="w-full border {{ $errors->has('label') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                     @error('label')
                         <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                     @enderror
+                    <p class="text-xs text-gray-400 mt-1">Kosongkan untuk auto-generate, misal: <em>"12 Bulan"</em> atau <em>"30 Hari"</em></p>
                 </div>
 
+                {{-- Tipe --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Tipe Tenor <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipe" id="tipe"
+                            class="w-full border {{ $errors->has('tipe') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">-- Pilih Tipe --</option>
+                        <option value="bulanan" {{ old('tipe') == 'bulanan' ? 'selected' : '' }}>📅 Bulanan</option>
+                        <option value="harian"  {{ old('tipe') == 'harian'  ? 'selected' : '' }}>☀️ Harian</option>
+                    </select>
+                    @error('tipe')
+                        <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Jumlah --}}
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Jumlah Bulan <span class="text-red-500">*</span>
+                        Jumlah <span class="text-red-500">*</span>
                     </label>
                     <div class="flex">
                         <input type="number" name="bulan" value="{{ old('bulan') }}"
                                min="1" max="360" placeholder="Contoh: 12"
                                class="w-full border {{ $errors->has('bulan') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} border-r-0 rounded-l-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                        <span class="bg-gray-100 border border-gray-300 rounded-r-lg px-3 py-2 text-sm text-gray-500">Bulan</span>
+                        <span id="satuan-label"
+                              class="bg-gray-100 border border-gray-300 rounded-r-lg px-3 py-2 text-sm text-gray-500 min-w-[70px] text-center">
+                            Bulan
+                        </span>
                     </div>
                     @error('bulan')
                         <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                     @enderror
-                    <p class="text-xs text-gray-400 mt-1">Label akan otomatis terisi jika dikosongkan</p>
                 </div>
 
                 <div class="flex items-center gap-3 pt-4 border-t border-gray-100">
@@ -66,4 +88,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Update label satuan saat tipe berubah
+    const tipeSelect   = document.getElementById('tipe');
+    const satuanLabel  = document.getElementById('satuan-label');
+
+    function updateSatuan() {
+        satuanLabel.textContent = tipeSelect.value === 'harian' ? 'Hari' : 'Bulan';
+    }
+
+    tipeSelect.addEventListener('change', updateSatuan);
+    updateSatuan(); // init on load
+</script>
 @endsection

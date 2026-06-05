@@ -3,6 +3,8 @@
 @section('page-title', 'Invoice Pembayaran')
 
 @section('content')
+@php $profil = \App\Models\ProfilAdmin::profil(); @endphp
+
 <div class="py-4 max-w-2xl">
 
     {{-- Toolbar --}}
@@ -12,7 +14,8 @@
             <i class="fa fa-arrow-left"></i> Kembali ke detail pinjaman
         </a>
         <button onclick="window.print()"
-                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                       px-4 py-2 rounded-lg text-sm font-medium transition">
             <i class="fa fa-print"></i> Cetak / Simpan PDF
         </button>
     </div>
@@ -24,16 +27,20 @@
         <div class="bg-gradient-to-r from-[#0f2d6b] to-[#22529a] px-8 py-6 text-white">
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                            <rect x="3" y="10" width="4" height="9" rx="1" fill="white" opacity="0.6"/>
-                            <rect x="9" y="6" width="4" height="13" rx="1" fill="white" opacity="0.8"/>
-                            <rect x="15" y="3" width="4" height="16" rx="1" fill="white"/>
-                        </svg>
-                    </div>
+                    {{-- Logo dari profil admin --}}
+                    <img src="{{ $profil->logo_url }}"
+                         alt="Logo"
+                         class="w-11 h-11 rounded-xl object-cover border-2 border-white/30 flex-shrink-0">
                     <div>
-                        <div class="font-bold text-base leading-tight">KoperasiSejahtera</div>
-                        <div class="text-white/60 text-xs tracking-wide uppercase mt-0.5">Sistem Informasi Keuangan</div>
+                        <div class="font-bold text-base leading-tight">{{ $profil->nama_lembaga }}</div>
+                        <div class="text-white/60 text-xs tracking-wide uppercase mt-0.5">
+                            {{ $profil->tagline ?? 'Sistem Informasi Keuangan' }}
+                        </div>
+                        @if($profil->no_telepon)
+                        <div class="text-white/50 text-xs mt-0.5">
+                            <i class="fa fa-phone mr-1"></i>{{ $profil->no_telepon }}
+                        </div>
+                        @endif
                     </div>
                 </div>
                 <div class="text-right">
@@ -52,9 +59,11 @@
             $isTidakBayar = $pembayaran->status === 'tidak_bayar';
         @endphp
         <div class="px-8 py-2.5 text-xs font-semibold flex items-center gap-2
-            {{ $isLunas ? 'bg-emerald-50 text-emerald-700 border-b border-emerald-100'
-                : ($isTidakBayar ? 'bg-red-50 text-red-600 border-b border-red-100'
-                : 'bg-amber-50 text-amber-700 border-b border-amber-100') }}">
+            {{ $isLunas
+                ? 'bg-emerald-50 text-emerald-700 border-b border-emerald-100'
+                : ($isTidakBayar
+                    ? 'bg-red-50 text-red-600 border-b border-red-100'
+                    : 'bg-amber-50 text-amber-700 border-b border-amber-100') }}">
             <i class="fa {{ $isLunas ? 'fa-circle-check' : ($isTidakBayar ? 'fa-circle-xmark' : 'fa-circle-half-stroke') }}"></i>
             Status Angsuran:
             <span class="font-bold">
@@ -81,11 +90,12 @@
             </div>
 
             {{-- Detail Angsuran --}}
-            <p class="text-xs text-gray-400 uppercase tracking-wider mb-3 font-semibold">Rincian Angsuran ke-{{ $pembayaran->angsuran_ke }}</p>
+            <p class="text-xs text-gray-400 uppercase tracking-wider mb-3 font-semibold">
+                Rincian Angsuran ke-{{ $pembayaran->angsuran_ke }}
+            </p>
 
             <div class="space-y-2.5 mb-6">
 
-                {{-- Jatuh tempo --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Jatuh Tempo</span>
                     <span class="text-gray-700">
@@ -93,7 +103,6 @@
                     </span>
                 </div>
 
-                {{-- Tanggal bayar --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Tanggal Bayar</span>
                     <span class="font-medium text-gray-700">
@@ -104,7 +113,6 @@
                     </span>
                 </div>
 
-                {{-- Jenis --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Jenis Pembayaran</span>
                     @php
@@ -114,7 +122,8 @@
                             'bayar_bunga_saja' => ['label' => 'Bayar Bunga Saja', 'class' => 'bg-purple-50 text-purple-700'],
                             'tidak_bayar'      => ['label' => 'Tidak Bayar',      'class' => 'bg-red-50 text-red-600'],
                         ];
-                        $jenis = $jenisMap[$pembayaran->jenis_pembayaran] ?? ['label' => $pembayaran->jenis_pembayaran, 'class' => 'bg-gray-100 text-gray-600'];
+                        $jenis = $jenisMap[$pembayaran->jenis_pembayaran]
+                            ?? ['label' => $pembayaran->jenis_pembayaran, 'class' => 'bg-gray-100 text-gray-600'];
                     @endphp
                     <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $jenis['class'] }}">
                         {{ $jenis['label'] }}
@@ -123,19 +132,16 @@
 
                 <div class="border-t border-dashed border-gray-200 my-1"></div>
 
-                {{-- Pokok --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Pokok</span>
                     <span class="text-gray-700">Rp {{ number_format($pembayaran->pokok_dibayar, 0, ',', '.') }}</span>
                 </div>
 
-                {{-- Bunga --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Bunga</span>
                     <span class="text-gray-700">Rp {{ number_format($pembayaran->bunga_dibayar, 0, ',', '.') }}</span>
                 </div>
 
-                {{-- Denda --}}
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Denda Keterlambatan</span>
                     @if($pembayaran->denda > 0)
@@ -161,15 +167,19 @@
                 @endif
             </div>
 
-            {{-- Sisa hutang --}}
+            {{-- Sisa Hutang --}}
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <div class="bg-blue-50 rounded-xl p-3 text-center">
                     <p class="text-xs text-blue-400 mb-1">Total Pinjaman</p>
-                    <p class="text-xs font-bold text-blue-700">Rp {{ number_format($pinjaman->total_pinjaman, 0, ',', '.') }}</p>
+                    <p class="text-xs font-bold text-blue-700">
+                        Rp {{ number_format($pinjaman->total_pinjaman, 0, ',', '.') }}
+                    </p>
                 </div>
                 <div class="bg-emerald-50 rounded-xl p-3 text-center">
                     <p class="text-xs text-emerald-400 mb-1">Total Terbayar</p>
-                    <p class="text-xs font-bold text-emerald-700">Rp {{ number_format($totalBayarSampaiIni, 0, ',', '.') }}</p>
+                    <p class="text-xs font-bold text-emerald-700">
+                        Rp {{ number_format($totalBayarSampaiIni, 0, ',', '.') }}
+                    </p>
                 </div>
                 <div class="rounded-xl p-3 text-center {{ $sisaSetelahBayar <= 0 ? 'bg-emerald-50' : 'bg-red-50' }}">
                     <p class="text-xs mb-1 {{ $sisaSetelahBayar <= 0 ? 'text-emerald-400' : 'text-red-400' }}">Sisa Hutang</p>
@@ -178,6 +188,31 @@
                     </p>
                 </div>
             </div>
+
+            {{-- Rekening Pembayaran --}}
+            @if($profil->rekening && count($profil->rekening) > 0)
+            <div class="mb-6 rounded-xl overflow-hidden border border-blue-100">
+                <div class="bg-blue-600 px-4 py-2.5">
+                    <p class="text-xs text-white font-semibold uppercase tracking-wide">
+                        <i class="fa fa-university mr-1.5"></i>Rekening Pembayaran
+                    </p>
+                </div>
+                <div class="divide-y divide-blue-50">
+                    @foreach($profil->rekening as $rek)
+                    <div class="flex items-center gap-3 bg-blue-50 px-4 py-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fa fa-credit-card text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-400 uppercase tracking-wide font-semibold">{{ $rek['bank'] }}</p>
+                            <p class="font-bold text-gray-800 text-sm font-mono tracking-wider">{{ $rek['no_rek'] }}</p>
+                            <p class="text-xs text-gray-500">a.n. {{ $rek['atas_nama'] }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{-- Progress --}}
             @php
@@ -188,7 +223,9 @@
             <div class="mb-6">
                 <div class="flex justify-between text-xs text-gray-400 mb-1">
                     <span>Progress Pelunasan</span>
-                    <span class="font-semibold">{{ $persen }}% (Angsuran {{ $pembayaran->angsuran_ke }} / {{ $pinjaman->tenor_bulan }})</span>
+                    <span class="font-semibold">
+                        {{ $persen }}% (Angsuran {{ $pembayaran->angsuran_ke }} / {{ $pinjaman->tenor_bulan }})
+                    </span>
                 </div>
                 <div class="w-full bg-gray-100 rounded-full h-2">
                     <div class="h-2 rounded-full transition-all
@@ -203,6 +240,9 @@
                     <p class="text-xs text-gray-400">Dicetak oleh</p>
                     <p class="text-sm font-semibold text-gray-700">{{ auth()->user()->name }}</p>
                     <p class="text-xs text-gray-400">{{ now()->translatedFormat('d F Y, H:i') }} WIB</p>
+                    @if($profil->alamat)
+                    <p class="text-xs text-gray-400 mt-1 max-w-xs">{{ $profil->alamat }}</p>
+                    @endif
                 </div>
                 <div class="text-right">
                     <p class="text-xs text-gray-400 mb-1">Tanda Tangan Karyawan</p>
@@ -217,18 +257,19 @@
     {{-- Aksi bawah --}}
     <div class="mt-4 flex gap-3 no-print">
         <button onclick="window.print()"
-                class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">
+                class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700
+                       text-white py-2.5 rounded-xl text-sm font-semibold transition">
             <i class="fa fa-print"></i> Cetak Invoice
         </button>
         <a href="{{ route('karyawan.pinjaman.show', $pinjaman) }}"
-           class="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-semibold transition">
+           class="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200
+                  text-gray-700 py-2.5 rounded-xl text-sm font-semibold transition">
             <i class="fa fa-arrow-left"></i> Kembali
         </a>
     </div>
 
 </div>
 
-{{-- Print styles --}}
 <style>
 @media print {
     .no-print { display: none !important; }

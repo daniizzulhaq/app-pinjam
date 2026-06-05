@@ -24,23 +24,25 @@ class PembayaranController extends Controller
         abort_if($pinjaman->user_id !== auth()->id(), 403);
 
         $validated = $request->validate([
-            'tanggal_bayar'    => ['required', 'date'],
-            'jenis_pembayaran' => ['required', 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar,cicilan_normal'],
-            'jumlah_dibayar'   => ['required', 'numeric', 'min:0'],
-            'keterangan'       => ['nullable', 'string', 'max:255'],
+            'tanggal_bayar'     => ['required', 'date'],
+            'jenis_pembayaran'  => ['required', 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar,cicilan_normal'],
+            'jumlah_dibayar'    => ['required', 'numeric', 'min:0'],
+            'keterangan'        => ['nullable', 'string', 'max:255'],
+            'bukti_pembayaran'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+        ], [
+            'bukti_pembayaran.image' => 'File bukti harus berupa gambar.',
+            'bukti_pembayaran.max'   => 'Ukuran bukti maksimal 3 MB.',
         ]);
 
-        $angsuranKe = $pinjaman->pembayaran->count() + 1;
-        $tanggalBayar = Carbon::parse($validated['tanggal_bayar']);
-
-        $jatuhTempoCicilan = Carbon::parse($pinjaman->tanggal_mulai)
-                                   ->addMonths($angsuranKe);
+        $angsuranKe        = $pinjaman->pembayaran->count() + 1;
+        $tanggalBayar      = Carbon::parse($validated['tanggal_bayar']);
+        $jatuhTempoCicilan = Carbon::parse($pinjaman->tanggal_mulai)->addMonths($angsuranKe);
 
         $hariTerlambat = 0;
-        $denda = 0;
+        $denda         = 0;
         if ($tanggalBayar->greaterThan($jatuhTempoCicilan)) {
             $hariTerlambat = $tanggalBayar->diffInDays($jatuhTempoCicilan);
-            $denda = $pinjaman->cicilan_per_bulan * 0.001 * $hariTerlambat;
+            $denda         = $pinjaman->cicilan_per_bulan * 0.001 * $hariTerlambat;
         }
 
         $bungaPerBulan = $pinjaman->total_bunga / $pinjaman->tenor_bulan;
@@ -52,6 +54,13 @@ class PembayaranController extends Controller
             $validated['jumlah_dibayar'] >= floor($pinjaman->cicilan_per_bulan) => 'lunas',
             default                                                              => 'sebagian',
         };
+
+        // Upload bukti pembayaran
+        $buktPath = null;
+        if ($request->hasFile('bukti_pembayaran')) {
+            $buktPath = $request->file('bukti_pembayaran')
+                ->store('bukti-pembayaran', 'public');
+        }
 
         $pembayaran = Pembayaran::create([
             'no_pembayaran'               => Pembayaran::generateNoPembayaran(),
@@ -69,6 +78,7 @@ class PembayaranController extends Controller
             'jenis_pembayaran'            => $validated['jenis_pembayaran'],
             'status'                      => $statusBayar,
             'keterangan'                  => $validated['keterangan'],
+            'bukti_pembayaran'            => $buktPath,
         ]);
 
         if ($angsuranKe >= $pinjaman->tenor_bulan || $validated['jenis_pembayaran'] === 'bayar_lunas') {
@@ -76,13 +86,9 @@ class PembayaranController extends Controller
         }
 
         return redirect()->route('karyawan.pinjaman.show', $pinjaman)
-                         ->with('success', 'Pembayaran angsuran ke-'.$angsuranKe.' berhasil dicatat.')
-                         ->with('invoice_id', $pembayaran->id); // opsional: auto-redirect ke invoice
+                         ->with('success', 'Pembayaran angsuran ke-'.$angsuranKe.' berhasil dicatat.');
     }
 
-    /**
-     * Invoice / kwitansi pembayaran.
-     */
     public function invoice(Pinjaman $pinjaman, Pembayaran $pembayaran)
     {
         abort_if($pinjaman->user_id !== auth()->id(), 403);

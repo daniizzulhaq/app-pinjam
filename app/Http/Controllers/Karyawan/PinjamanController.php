@@ -33,43 +33,53 @@ class PinjamanController extends Controller
     }
  
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nasabah_id'       => ['required', 'exists:nasabah,id'],
-            'bunga_id'         => ['required', 'exists:bunga_pinjaman,id'],
-            'tenor_id'         => ['required', 'exists:tenor,id'],
-            'jumlah_pinjaman'  => ['required', 'numeric', 'min:100000'],
-            'catatan_pengajuan'=> ['nullable', 'string', 'max:500'],
-        ]);
- 
-        $bunga = BungaPinjaman::findOrFail($validated['bunga_id']);
-        $tenor = Tenor::findOrFail($validated['tenor_id']);
- 
-        $jumlah      = $validated['jumlah_pinjaman'];
-        $totalBunga  = $jumlah * ($bunga->persentase / 100) * $tenor->bulan;
-        $totalPinjaman = $jumlah + $totalBunga;
-        $cicilan     = $totalPinjaman / $tenor->bulan;
- 
-        Pinjaman::create([
-            'no_pinjaman'      => Pinjaman::generateNoPinjaman(),
-            'nasabah_id'       => $validated['nasabah_id'],
-            'user_id'          => auth()->id(),
-            'bunga_id'         => $validated['bunga_id'],
-            'tenor_id'         => $validated['tenor_id'],
-            'jumlah_pinjaman'  => $jumlah,
-            'bunga_persen'     => $bunga->persentase,
-            'tenor_bulan'      => $tenor->bulan,
-            'cicilan_per_bulan'=> $cicilan,
-            'total_pinjaman'   => $totalPinjaman,
-            'total_bunga'      => $totalBunga,
-            'tanggal_pengajuan'=> now(),
-            'catatan_pengajuan'=> $validated['catatan_pengajuan'],
-            'status'           => 'menunggu_approval',
-        ]);
- 
-        return redirect()->route('karyawan.pinjaman.index')
-                         ->with('success', 'Pengajuan pinjaman berhasil dikirim, menunggu approval admin.');
+{
+    $validated = $request->validate([
+        'nasabah_id'        => ['required', 'exists:nasabah,id'],
+        'bunga_id'          => ['required', 'exists:bunga_pinjaman,id'],
+        'tenor_id'          => ['required', 'exists:tenor,id'],
+        'jumlah_pinjaman'   => ['required', 'numeric', 'min:100000'],
+        'catatan_pengajuan' => ['nullable', 'string', 'max:500'],
+    ]);
+
+    $bunga = BungaPinjaman::findOrFail($validated['bunga_id']);
+    $tenor = Tenor::findOrFail($validated['tenor_id']);
+
+    $jumlah  = $validated['jumlah_pinjaman'];
+    $periode = $tenor->bulan; // tetap pakai kolom 'bulan' tapi maknanya bisa hari
+
+    // Bunga: jika harian, konversi persentase bunga bulanan → harian (/30)
+    if ($tenor->tipe === 'harian') {
+        $bungaPerPeriode = $bunga->persentase / 100 / 30; // bunga per hari
+    } else {
+        $bungaPerPeriode = $bunga->persentase / 100; // bunga per bulan
     }
+
+    $totalBunga    = $jumlah * $bungaPerPeriode * $periode;
+    $totalPinjaman = $jumlah + $totalBunga;
+    $cicilan       = $totalPinjaman / $periode;
+
+    Pinjaman::create([
+        'no_pinjaman'       => Pinjaman::generateNoPinjaman(),
+        'nasabah_id'        => $validated['nasabah_id'],
+        'user_id'           => auth()->id(),
+        'bunga_id'          => $validated['bunga_id'],
+        'tenor_id'          => $validated['tenor_id'],
+        'jumlah_pinjaman'   => $jumlah,
+        'bunga_persen'      => $bunga->persentase,
+        'tenor_bulan'       => $periode,      // jumlah periode (hari atau bulan)
+        'tenor_tipe'        => $tenor->tipe,  // 'harian' / 'bulanan' ← simpan di pinjaman
+        'cicilan_per_bulan' => $cicilan,       // cicilan per periode
+        'total_pinjaman'    => $totalPinjaman,
+        'total_bunga'       => $totalBunga,
+        'tanggal_pengajuan' => now(),
+        'catatan_pengajuan' => $validated['catatan_pengajuan'],
+        'status'            => 'menunggu_approval',
+    ]);
+
+    return redirect()->route('karyawan.pinjaman.index')
+                     ->with('success', 'Pengajuan pinjaman berhasil dikirim, menunggu approval admin.');
+}
  
     public function show(Pinjaman $pinjaman)
     {

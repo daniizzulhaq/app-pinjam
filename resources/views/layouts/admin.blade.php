@@ -18,10 +18,16 @@
     {{-- ===== SIDEBAR ===== --}}
     <aside class="w-64 bg-blue-800 text-white flex flex-col flex-shrink-0">
 
-        {{-- Logo --}}
-        <div class="px-6 py-5 border-b border-blue-700">
-            <h1 class="text-xl font-bold tracking-wide">💰 Pinjamin</h1>
-            <p class="text-blue-300 text-xs mt-1">Panel Administrator</p>
+        {{-- Logo Lembaga (dari ProfilAdmin) --}}
+        @php $profil = \App\Models\ProfilAdmin::profil(); @endphp
+        <div class="px-6 py-5 border-b border-blue-700 flex items-center gap-3">
+            <img src="{{ $profil->logo_url }}"
+                 alt="Logo"
+                 class="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-blue-600">
+            <div>
+                <h1 class="text-base font-bold tracking-wide leading-tight">{{ $profil->nama_lembaga }}</h1>
+                <p class="text-blue-300 text-xs mt-0.5">Panel Administrator</p>
+            </div>
         </div>
 
         {{-- Nav --}}
@@ -86,23 +92,43 @@
             <p class="text-blue-400 text-xs uppercase font-semibold px-3 pt-4 pb-1">Laporan</p>
 
             <a href="{{ route('admin.laporan.pinjaman') }}"
-               class="sidebar-link flex items-center gap-3 px-3 py-2 rounded text-sm">
+               class="sidebar-link flex items-center gap-3 px-3 py-2 rounded text-sm {{ request()->routeIs('admin.laporan.pinjaman') ? 'active' : '' }}">
                 <i class="fa fa-print w-5"></i> Lap. Pinjaman
             </a>
 
             <a href="{{ route('admin.laporan.pembayaran') }}"
-               class="sidebar-link flex items-center gap-3 px-3 py-2 rounded text-sm">
+               class="sidebar-link flex items-center gap-3 px-3 py-2 rounded text-sm {{ request()->routeIs('admin.laporan.pembayaran') ? 'active' : '' }}">
                 <i class="fa fa-print w-5"></i> Lap. Pembayaran
             </a>
+
+            {{-- ===== PROFIL ===== --}}
+            <p class="text-blue-400 text-xs uppercase font-semibold px-3 pt-4 pb-1">Pengaturan</p>
+
+            <a href="{{ route('admin.profil.index') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2 rounded text-sm {{ request()->routeIs('admin.profil.*') ? 'active' : '' }}">
+                <i class="fa fa-id-card w-5"></i> Profil Lembaga
+            </a>
+
         </nav>
 
         {{-- User Info --}}
-        <div class="px-4 py-3 border-t border-blue-700 text-sm">
-            <p class="font-semibold truncate">{{ auth()->user()->name }}</p>
-            <p class="text-blue-300 text-xs">Administrator</p>
-            <form method="POST" action="{{ route('logout') }}" class="mt-2">
+        <div class="px-4 py-3 border-t border-blue-700">
+            <a href="{{ route('admin.profil.index') }}"
+               class="flex items-center gap-3 group hover:bg-blue-700/50 rounded-lg px-2 py-1.5 transition -mx-2">
+                <img src="{{ $profil->logo_url }}"
+                     alt="Logo"
+                     class="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-blue-500
+                            group-hover:border-white transition">
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-sm truncate">{{ auth()->user()->name }}</p>
+                    <p class="text-blue-300 text-xs">Administrator</p>
+                </div>
+                <i class="fa fa-cog text-blue-400 group-hover:text-white text-xs transition"></i>
+            </a>
+
+            <form method="POST" action="{{ route('logout') }}" class="mt-2 px-2">
                 @csrf
-                <button class="text-blue-300 hover:text-white text-xs">
+                <button class="text-blue-300 hover:text-white text-xs transition">
                     <i class="fa fa-sign-out-alt mr-1"></i> Logout
                 </button>
             </form>
@@ -115,7 +141,19 @@
         {{-- Topbar --}}
         <header class="bg-white shadow-sm px-6 py-4 flex items-center justify-between flex-shrink-0">
             <h2 class="text-lg font-semibold text-gray-700">@yield('page-title', 'Dashboard')</h2>
-            <span class="text-sm text-gray-500">{{ now()->translatedFormat('l, d F Y') }}</span>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-500">{{ now()->translatedFormat('l, d F Y') }}</span>
+                {{-- Shortcut profil di topbar --}}
+                <a href="{{ route('admin.profil.index') }}"
+                   class="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition
+                          {{ request()->routeIs('admin.profil.*') ? 'text-blue-600 font-medium' : '' }}">
+                    <img src="{{ $profil->logo_url }}"
+                         alt="Logo"
+                         class="w-7 h-7 rounded-full object-cover border border-gray-200">
+                    <span class="hidden sm:inline">{{ $profil->nama_lembaga }}</span>
+                    <i class="fa fa-chevron-down text-xs text-gray-400"></i>
+                </a>
+            </div>
         </header>
 
         {{-- Alerts --}}
@@ -139,5 +177,6 @@
     </div>
 </div>
 
+@stack('scripts')
 </body>
 </html>

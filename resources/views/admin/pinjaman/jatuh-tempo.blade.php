@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/pinjaman/jatuh-tempo.blade.php --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 @section('title', 'Monitoring Jatuh Tempo')
 @section('page-title', 'Monitoring Jatuh Tempo Pinjaman')
@@ -9,6 +12,7 @@
     <div class="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm">
         <i class="fa fa-exclamation-triangle text-amber-500"></i>
         Menampilkan pinjaman aktif yang jatuh tempo dalam <strong>30 hari ke depan</strong>.
+        Mencakup tenor <strong>harian</strong> maupun <strong>bulanan</strong>.
     </div>
 
     <div class="bg-white rounded-xl shadow overflow-x-auto">
@@ -18,6 +22,7 @@
                     <th class="px-4 py-3 text-left">#</th>
                     <th class="px-4 py-3 text-left">Nasabah</th>
                     <th class="px-4 py-3 text-left">Marketing</th>
+                    <th class="px-4 py-3 text-center">Tenor</th>
                     <th class="px-4 py-3 text-right">Pokok Pinjaman</th>
                     <th class="px-4 py-3 text-center">Jatuh Tempo</th>
                     <th class="px-4 py-3 text-center">Sisa Hari</th>
@@ -27,7 +32,11 @@
             <tbody class="divide-y divide-gray-100">
                 @forelse($pinjaman as $item)
                 @php
-                    $sisaHari = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($item->tanggal_jatuh_tempo)->startOfDay(), false);
+                    $tipe     = $item->tenor_tipe ?? 'bulanan';
+                    $satuan   = $tipe === 'harian' ? 'hr' : 'bln';
+                    $sisaHari = now()->startOfDay()->diffInDays(
+                        \Carbon\Carbon::parse($item->tanggal_jatuh_tempo)->startOfDay(), false
+                    );
                 @endphp
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ $loop->iteration }}</td>
@@ -36,6 +45,22 @@
                         <div class="text-xs text-gray-400">{{ $item->nasabah->no_telepon }}</div>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $item->karyawan->name ?? '-' }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-gray-700 text-xs">{{ $item->tenor_bulan }} {{ $satuan }}</span>
+                        @if($tipe === 'harian')
+                            <span class="block mt-0.5">
+                                <span class="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5 rounded-full">
+                                    <i class="fa fa-sun-o mr-0.5"></i>Harian
+                                </span>
+                            </span>
+                        @else
+                            <span class="block mt-0.5">
+                                <span class="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
+                                    <i class="fa fa-calendar mr-0.5"></i>Bulanan
+                                </span>
+                            </span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-right font-mono text-gray-700">
                         Rp {{ number_format($item->jumlah_pinjaman, 0, ',', '.') }}
                     </td>
@@ -70,7 +95,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="text-center py-12 text-gray-400">
+                    <td colspan="8" class="text-center py-12 text-gray-400">
                         <i class="fa fa-check-circle text-4xl mb-2 block text-green-400"></i>
                         Tidak ada pinjaman yang jatuh tempo dalam 30 hari ke depan.
                     </td>

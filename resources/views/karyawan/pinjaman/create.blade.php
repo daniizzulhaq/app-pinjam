@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/karyawan/pinjaman/create.blade.php   --}}
+{{-- ============================================================ --}}
 @extends('layouts.karyawan')
 @section('title', 'Ajukan Pinjaman')
 @section('page-title', 'Ajukan Pinjaman Baru')
@@ -91,13 +94,36 @@
                             class="w-full border {{ $errors->has('tenor_id') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                             onchange="hitungCicilan()">
                         <option value="">-- Pilih Tenor --</option>
-                        @foreach($tenor as $t)
-                            <option value="{{ $t->id }}"
-                                    data-bulan="{{ $t->bulan }}"
-                                {{ old('tenor_id') == $t->id ? 'selected' : '' }}>
-                                {{ $t->bulan }} Bulan
-                            </option>
-                        @endforeach
+                        {{-- Grup: Bulanan --}}
+                        @php
+                            $tenorBulanan = $tenor->where('tipe', 'bulanan');
+                            $tenorHarian  = $tenor->where('tipe', 'harian');
+                        @endphp
+                        @if($tenorBulanan->count())
+                        <optgroup label="📅 Bulanan">
+                            @foreach($tenorBulanan as $t)
+                                <option value="{{ $t->id }}"
+                                        data-bulan="{{ $t->bulan }}"
+                                        data-tipe="{{ $t->tipe }}"
+                                    {{ old('tenor_id') == $t->id ? 'selected' : '' }}>
+                                    {{ $t->label }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                        @endif
+                        {{-- Grup: Harian --}}
+                        @if($tenorHarian->count())
+                        <optgroup label="☀️ Harian">
+                            @foreach($tenorHarian as $t)
+                                <option value="{{ $t->id }}"
+                                        data-bulan="{{ $t->bulan }}"
+                                        data-tipe="{{ $t->tipe }}"
+                                    {{ old('tenor_id') == $t->id ? 'selected' : '' }}>
+                                    {{ $t->label }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                        @endif
                     </select>
                     @error('tenor_id')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -118,7 +144,7 @@
                         <p id="sim_total" class="font-semibold text-gray-800">-</p>
                     </div>
                     <div class="col-span-2">
-                        <p class="text-gray-500 text-xs">Cicilan per Bulan</p>
+                        <p id="sim_cicilan_label" class="text-gray-500 text-xs">Cicilan per Bulan</p>
                         <p id="sim_cicilan" class="font-bold text-emerald-700 text-lg">-</p>
                     </div>
                 </div>
@@ -150,27 +176,37 @@
 
 <script>
 function hitungCicilan() {
-    const jumlah  = parseFloat(document.querySelector('[name=jumlah_pinjaman]').value) || 0;
-    const bungaSel = document.querySelector('[name=bunga_id]');
-    const tenorSel = document.querySelector('[name=tenor_id]');
+    const jumlah    = parseFloat(document.querySelector('[name=jumlah_pinjaman]').value) || 0;
+    const bungaSel  = document.querySelector('[name=bunga_id]');
+    const tenorSel  = document.querySelector('[name=tenor_id]');
 
-    const persen  = parseFloat(bungaSel.selectedOptions[0]?.dataset.persen) || 0;
-    const bulan   = parseFloat(tenorSel.selectedOptions[0]?.dataset.bulan)  || 0;
+    const persenBln = parseFloat(bungaSel.selectedOptions[0]?.dataset.persen) || 0;
+    const periode   = parseFloat(tenorSel.selectedOptions[0]?.dataset.bulan)  || 0;
+    const tipe      = tenorSel.selectedOptions[0]?.dataset.tipe || 'bulanan';
 
-    if (!jumlah || !persen || !bulan) {
+    if (!jumlah || !persenBln || !periode) {
         document.getElementById('simulasi').classList.add('hidden');
         return;
     }
 
-    const totalBunga   = jumlah * (persen / 100) * bulan;
+    // Jika harian: konversi bunga bulanan → harian (/30)
+    const bungaPerPeriode = tipe === 'harian'
+        ? (persenBln / 100 / 30)
+        : (persenBln / 100);
+
+    const totalBunga    = jumlah * bungaPerPeriode * periode;
     const totalPinjaman = jumlah + totalBunga;
-    const cicilan      = totalPinjaman / bulan;
+    const cicilan       = totalPinjaman / periode;
 
     const fmt = v => 'Rp ' + v.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
-    document.getElementById('sim_bunga').textContent   = fmt(totalBunga);
-    document.getElementById('sim_total').textContent   = fmt(totalPinjaman);
-    document.getElementById('sim_cicilan').textContent = fmt(cicilan);
+    document.getElementById('sim_bunga').textContent         = fmt(totalBunga);
+    document.getElementById('sim_total').textContent         = fmt(totalPinjaman);
+    document.getElementById('sim_cicilan').textContent       = fmt(cicilan);
+    document.getElementById('sim_cicilan_label').textContent = tipe === 'harian'
+        ? 'Cicilan per Hari'
+        : 'Cicilan per Bulan';
+
     document.getElementById('simulasi').classList.remove('hidden');
 }
 </script>

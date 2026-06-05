@@ -29,7 +29,8 @@
                 <tr>
                     <th class="px-4 py-3 text-left">#</th>
                     <th class="px-4 py-3 text-left">Label</th>
-                    <th class="px-4 py-3 text-center">Jumlah Bulan</th>
+                    <th class="px-4 py-3 text-center">Tipe</th>
+                    <th class="px-4 py-3 text-center">Jumlah</th>
                     <th class="px-4 py-3 text-center">Status</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -40,7 +41,20 @@
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ $loop->iteration }}</td>
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $item->label }}</td>
                     <td class="px-4 py-3 text-center">
-                        <code class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">{{ $item->bulan }} bulan</code>
+                        @if($item->tipe === 'harian')
+                            <span class="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">
+                                <i class="fa fa-sun-o mr-1"></i>Harian
+                            </span>
+                        @else
+                            <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                                <i class="fa fa-calendar mr-1"></i>Bulanan
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <code class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                            {{ $item->bulan }} {{ $item->tipe === 'harian' ? 'hari' : 'bulan' }}
+                        </code>
                     </td>
                     <td class="px-4 py-3 text-center">
                         @if($item->is_active)
@@ -65,7 +79,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center py-12 text-gray-400">
+                    <td colspan="6" class="text-center py-12 text-gray-400">
                         <i class="fa fa-calendar text-4xl mb-2 block"></i>
                         Belum ada data tenor.
                     </td>

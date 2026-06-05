@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/bunga/create.blade.php         --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 
 @section('title', 'Tambah Bunga')
@@ -24,6 +27,7 @@
             <form method="POST" action="{{ route('admin.bunga.store') }}">
                 @csrf
 
+                {{-- Nama Bunga --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Nama Bunga <span class="text-red-500">*</span>
@@ -36,21 +40,30 @@
                     @enderror
                 </div>
 
+                {{-- Persentase --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Persentase (%/bulan) <span class="text-red-500">*</span>
+                        Persentase <span class="text-red-500">*</span>
                     </label>
                     <div class="flex">
-                        <input type="number" name="persentase" value="{{ old('persentase') }}"
+                        <input type="number" name="persentase" id="persentase"
+                               value="{{ old('persentase') }}"
                                step="0.01" min="0" max="100" placeholder="Contoh: 2.50"
+                               oninput="updateHint()"
                                class="w-full border {{ $errors->has('persentase') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} border-r-0 rounded-l-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                         <span class="bg-gray-100 border border-gray-300 rounded-r-lg px-3 py-2 text-sm text-gray-500">%</span>
                     </div>
                     @error('persentase')
                         <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                     @enderror
+                    <p class="text-xs text-gray-400 mt-1">
+                        Diinput dalam satuan <strong>%/bulan</strong>.
+                        Untuk tenor harian, sistem otomatis konversi menjadi %/hari (dibagi 30).
+                        <span id="hint-harian" class="text-blue-500 hidden"></span>
+                    </p>
                 </div>
 
+                {{-- Jenis --}}
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Jenis Bunga <span class="text-red-500">*</span>
@@ -66,10 +79,12 @@
                     @enderror
                 </div>
 
+                {{-- Keterangan Jenis --}}
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-700">
                     <p class="font-semibold mb-1"><i class="fa fa-info-circle mr-1"></i> Keterangan Jenis Bunga</p>
-                    <p>• <strong>Flat</strong>: Bunga dihitung dari pokok pinjaman awal setiap bulan</p>
+                    <p>• <strong>Flat</strong>: Bunga dihitung dari pokok pinjaman awal setiap periode</p>
                     <p>• <strong>Efektif</strong>: Bunga dihitung dari sisa pokok pinjaman</p>
+                    <p class="mt-1 text-blue-500">• Untuk tenor <strong>harian</strong>, %/bulan otomatis dibagi 30 menjadi %/hari</p>
                 </div>
 
                 <div class="flex items-center gap-3 pt-4 border-t border-gray-100">
@@ -86,4 +101,18 @@
         </div>
     </div>
 </div>
+
+<script>
+function updateHint() {
+    const val  = parseFloat(document.getElementById('persentase').value) || 0;
+    const hint = document.getElementById('hint-harian');
+    if (val > 0) {
+        hint.textContent = '→ Jika tenor harian: ≈ ' + (val / 30).toFixed(4) + '%/hari';
+        hint.classList.remove('hidden');
+    } else {
+        hint.classList.add('hidden');
+    }
+}
+</script>
+
 @endsection

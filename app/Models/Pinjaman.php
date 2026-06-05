@@ -21,6 +21,7 @@ class Pinjaman extends Model
         'jumlah_pinjaman',
         'bunga_persen',
         'tenor_bulan',
+        'tenor_tipe', // baru
         'cicilan_per_bulan',
         'total_pinjaman',
         'total_bunga',
@@ -35,30 +36,37 @@ class Pinjaman extends Model
     ];
 
     protected $casts = [
-        'jumlah_pinjaman'    => 'decimal:2',
-        'bunga_persen'       => 'decimal:2',
-        'cicilan_per_bulan'  => 'decimal:2',
-        'total_pinjaman'     => 'decimal:2',
-        'total_bunga'        => 'decimal:2',
-        'tenor_bulan'        => 'integer',   // ← FIX
-        'tanggal_pengajuan'  => 'date',
-        'tanggal_approval'   => 'date',
-        'tanggal_mulai'      => 'date',
-        'tanggal_jatuh_tempo'=> 'date',
+        'jumlah_pinjaman'      => 'decimal:2',
+        'bunga_persen'         => 'decimal:2',
+        'cicilan_per_bulan'    => 'decimal:2',
+        'total_pinjaman'       => 'decimal:2',
+        'total_bunga'          => 'decimal:2',
+        'tenor_bulan'          => 'integer',
+        'tenor_tipe'           => 'string', // baru
+        'tanggal_pengajuan'    => 'date',
+        'tanggal_approval'     => 'date',
+        'tanggal_mulai'        => 'date',
+        'tanggal_jatuh_tempo'  => 'date',
     ];
 
-    // ---- AUTO GENERATE NO PINJAMAN ----
+    // =====================================================
+    // AUTO GENERATE NO PINJAMAN
+    // =====================================================
     public static function generateNoPinjaman(): string
     {
-        $tahun  = date('Y');
-        $bulan  = date('m');
-        $last   = static::whereYear('created_at', $tahun)
-                        ->whereMonth('created_at', $bulan)
-                        ->count();
+        $tahun = date('Y');
+        $bulan = date('m');
+
+        $last = static::whereYear('created_at', $tahun)
+            ->whereMonth('created_at', $bulan)
+            ->count();
+
         return 'PIN-' . $tahun . $bulan . '-' . str_pad($last + 1, 4, '0', STR_PAD_LEFT);
     }
 
-    // ---- SCOPE ----
+    // =====================================================
+    // SCOPE
+    // =====================================================
     public function scopeMenunggu($query)
     {
         return $query->where('status', 'menunggu_approval');
@@ -72,13 +80,16 @@ class Pinjaman extends Model
     public function scopeJatuhTempo($query)
     {
         return $query->where('status', 'aktif')
-                     ->whereDate('tanggal_jatuh_tempo', '<=', now());
+            ->whereDate('tanggal_jatuh_tempo', '<=', now());
     }
 
-    // ---- ACCESSOR ----
+    // =====================================================
+    // ACCESSOR
+    // =====================================================
     public function getSisaPinjamanAttribute(): float
     {
         $totalDibayar = $this->pembayaran->sum('pokok_dibayar');
+
         return $this->jumlah_pinjaman - $totalDibayar;
     }
 
@@ -87,7 +98,9 @@ class Pinjaman extends Model
         return $this->pembayaran->count() + 1;
     }
 
-    // ---- RELATIONS ----
+    // =====================================================
+    // RELATIONSHIP
+    // =====================================================
     public function nasabah()
     {
         return $this->belongsTo(Nasabah::class);

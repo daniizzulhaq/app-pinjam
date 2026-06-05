@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Tenor;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TenorController extends Controller
 {
     public function index()
     {
-        $tenor = Tenor::orderBy('bulan')->paginate(15);
+        $tenor = Tenor::orderBy('tipe')->orderBy('bulan')->paginate(15);
         return view('admin.tenor.index', compact('tenor'));
     }
 
@@ -22,12 +23,14 @@ class TenorController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'bulan' => ['required', 'integer', 'min:1', 'max:360', 'unique:tenor,bulan'],
+            'tipe'  => ['required', 'in:harian,bulanan'],
+            'bulan' => ['required', 'integer', 'min:1', 'max:360',
+                        Rule::unique('tenor')->where('tipe', $request->tipe)],
             'label' => ['nullable', 'string', 'max:50'],
         ]);
 
-        // Auto-generate label jika dikosongkan
-        $validated['label'] = $validated['label'] ?: $validated['bulan'] . ' Bulan';
+        $satuan = $validated['tipe'] === 'harian' ? 'Hari' : 'Bulan';
+        $validated['label'] = $validated['label'] ?: $validated['bulan'] . ' ' . $satuan;
 
         Tenor::create($validated);
 
@@ -43,12 +46,15 @@ class TenorController extends Controller
     public function update(Request $request, Tenor $tenor)
     {
         $validated = $request->validate([
-            'bulan'     => ['required', 'integer', 'min:1', 'max:360', 'unique:tenor,bulan,' . $tenor->id],
+            'tipe'      => ['required', 'in:harian,bulanan'],
+            'bulan'     => ['required', 'integer', 'min:1', 'max:360',
+                            Rule::unique('tenor')->where('tipe', $request->tipe)->ignore($tenor->id)],
             'label'     => ['nullable', 'string', 'max:50'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $validated['label']     = $validated['label'] ?: $validated['bulan'] . ' Bulan';
+        $satuan = $validated['tipe'] === 'harian' ? 'Hari' : 'Bulan';
+        $validated['label']     = $validated['label'] ?: $validated['bulan'] . ' ' . $satuan;
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $tenor->update($validated);

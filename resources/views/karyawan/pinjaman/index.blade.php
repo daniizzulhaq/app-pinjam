@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/karyawan/pinjaman/index.blade.php    --}}
+{{-- ============================================================ --}}
 @extends('layouts.karyawan')
 @section('title', 'Data Pinjaman')
 @section('page-title', 'Data Pinjaman')
@@ -46,7 +49,7 @@
                     <th class="px-4 py-3 text-left">Nasabah</th>
                     <th class="px-4 py-3 text-right">Jumlah</th>
                     <th class="px-4 py-3 text-center">Tenor</th>
-                    <th class="px-4 py-3 text-right">Cicilan/Bulan</th>
+                    <th class="px-4 py-3 text-right">Cicilan</th>
                     <th class="px-4 py-3 text-center">Status</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -60,6 +63,9 @@
                         'lunas'             => 'bg-blue-100 text-blue-700',
                         'ditolak'           => 'bg-red-100 text-red-700',
                     ][$p->status] ?? 'bg-gray-100 text-gray-600';
+
+                    $tipe   = $p->tenor_tipe ?? 'bulanan';
+                    $satuan = $tipe === 'harian' ? 'hr' : 'bln';
                 @endphp
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-4 py-3 text-gray-400 text-xs">
@@ -78,11 +84,17 @@
                     <td class="px-4 py-3 text-right font-medium text-gray-800">
                         Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}
                     </td>
-                    <td class="px-4 py-3 text-center text-gray-600">
-                        {{ $p->tenor_bulan }} bln
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-gray-700">{{ $p->tenor_bulan }} {{ $satuan }}</span>
+                        @if($tipe === 'harian')
+                            <span class="block text-xs text-orange-500 mt-0.5">
+                                <i class="fa fa-sun-o mr-0.5"></i>Harian
+                            </span>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-right text-gray-700">
-                        Rp {{ number_format($p->cicilan_per_bulan, 0, ',', '.') }}
+                        <div>Rp {{ number_format($p->cicilan_per_bulan, 0, ',', '.') }}</div>
+                        <div class="text-xs text-gray-400">/ {{ $tipe === 'harian' ? 'hari' : 'bulan' }}</div>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize">

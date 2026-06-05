@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/bunga/index.blade.php          --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 
 @section('title', 'Data Bunga')
@@ -18,6 +21,15 @@
            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
             <i class="fa fa-plus mr-1"></i> Tambah Bunga
         </a>
+    </div>
+
+    {{-- Info hint --}}
+    <div class="flex items-start gap-3 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl mb-4 text-xs">
+        <i class="fa fa-info-circle text-blue-400 mt-0.5"></i>
+        <span>
+            Persentase bunga diinput dalam satuan <strong>%/bulan</strong>.
+            Untuk pinjaman dengan tenor <strong>harian</strong>, sistem otomatis mengkonversi menjadi %/hari (dibagi 30).
+        </span>
     </div>
 
     <div class="bg-white rounded-xl shadow overflow-hidden">
@@ -41,6 +53,9 @@
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $item->nama_bunga }}</td>
                     <td class="px-4 py-3 text-center">
                         <code class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">{{ $item->persentase }}%/bln</code>
+                        <div class="text-xs text-gray-400 mt-0.5">
+                            ≈ {{ number_format($item->persentase / 30, 4) }}%/hari
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-center">
                         @if($item->jenis == 'flat')

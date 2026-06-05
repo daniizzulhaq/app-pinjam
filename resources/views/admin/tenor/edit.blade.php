@@ -1,3 +1,6 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/tenor/edit.blade.php           --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 
 @section('title', 'Edit Tenor')
@@ -24,30 +27,52 @@
             <form method="POST" action="{{ route('admin.tenor.update', $tenor) }}">
                 @csrf @method('PUT')
 
+                {{-- Label --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Label Tenor</label>
                     <input type="text" name="label" value="{{ old('label', $tenor->label) }}"
+                           placeholder="Contoh: 12 Bulan / 30 Hari"
                            class="w-full border {{ $errors->has('label') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                     @error('label')
                         <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                     @enderror
                 </div>
 
+                {{-- Tipe --}}
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Jumlah Bulan <span class="text-red-500">*</span>
+                        Tipe Tenor <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipe" id="tipe"
+                            class="w-full border {{ $errors->has('tipe') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="bulanan" {{ old('tipe', $tenor->tipe) == 'bulanan' ? 'selected' : '' }}>📅 Bulanan</option>
+                        <option value="harian"  {{ old('tipe', $tenor->tipe) == 'harian'  ? 'selected' : '' }}>☀️ Harian</option>
+                    </select>
+                    @error('tipe')
+                        <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Jumlah --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Jumlah <span class="text-red-500">*</span>
                     </label>
                     <div class="flex">
                         <input type="number" name="bulan" value="{{ old('bulan', $tenor->bulan) }}"
                                min="1" max="360"
                                class="w-full border {{ $errors->has('bulan') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} border-r-0 rounded-l-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                        <span class="bg-gray-100 border border-gray-300 rounded-r-lg px-3 py-2 text-sm text-gray-500">Bulan</span>
+                        <span id="satuan-label"
+                              class="bg-gray-100 border border-gray-300 rounded-r-lg px-3 py-2 text-sm text-gray-500 min-w-[70px] text-center">
+                            {{ $tenor->tipe === 'harian' ? 'Hari' : 'Bulan' }}
+                        </span>
                     </div>
                     @error('bulan')
                         <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                     @enderror
                 </div>
 
+                {{-- Status --}}
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select name="is_active"
@@ -71,4 +96,15 @@
         </div>
     </div>
 </div>
+
+<script>
+    const tipeSelect  = document.getElementById('tipe');
+    const satuanLabel = document.getElementById('satuan-label');
+
+    function updateSatuan() {
+        satuanLabel.textContent = tipeSelect.value === 'harian' ? 'Hari' : 'Bulan';
+    }
+
+    tipeSelect.addEventListener('change', updateSatuan);
+</script>
 @endsection

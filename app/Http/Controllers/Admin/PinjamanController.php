@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 
 class PinjamanController extends Controller
 {
-    // Daftar semua pengajuan
     public function index(Request $request)
     {
         $pinjaman = Pinjaman::with(['nasabah', 'karyawan', 'bunga', 'tenor'])
@@ -30,7 +29,6 @@ class PinjamanController extends Controller
         return view('admin.pinjaman.show', compact('pinjaman'));
     }
 
-    // Approve / Reject pengajuan
     public function approval(Request $request, Pinjaman $pinjaman)
     {
         $validated = $request->validate([
@@ -49,11 +47,17 @@ class PinjamanController extends Controller
             'approved_by'      => auth()->id(),
         ];
 
-        // Jika disetujui, aktifkan pinjaman
         if ($validated['action'] === 'disetujui') {
+            $tipe = $pinjaman->tenor_tipe ?? 'bulanan';
+
+            // Hitung tanggal jatuh tempo sesuai tipe tenor
+            $tanggalJatuhTempo = $tipe === 'harian'
+                ? now()->addDays($pinjaman->tenor_bulan)
+                : now()->addMonths($pinjaman->tenor_bulan);
+
             $updateData['status']              = 'aktif';
             $updateData['tanggal_mulai']       = now();
-            $updateData['tanggal_jatuh_tempo'] = now()->addMonths($pinjaman->tenor_bulan);
+            $updateData['tanggal_jatuh_tempo'] = $tanggalJatuhTempo;
         }
 
         $pinjaman->update($updateData);
@@ -62,7 +66,6 @@ class PinjamanController extends Controller
         return redirect()->route('admin.pinjaman.index')->with('success', $msg);
     }
 
-    // Monitoring jatuh tempo
     public function jatuhTempo()
     {
         $pinjaman = Pinjaman::with(['nasabah', 'karyawan'])

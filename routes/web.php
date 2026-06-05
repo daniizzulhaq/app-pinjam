@@ -50,6 +50,16 @@ Route::middleware(['auth', 'is_admin'])
             ->name('pembayaran.denda');
 
         // ==========================
+        // PROFIL ADMIN
+        // ==========================
+
+        Route::get('/profil', [Admin\ProfilController::class, 'index'])
+            ->name('profil.index');
+
+        Route::put('/profil', [Admin\ProfilController::class, 'update'])
+            ->name('profil.update');
+
+        // ==========================
         // LAPORAN
         // ==========================
 
@@ -111,8 +121,7 @@ Route::middleware(['auth', 'is_karyawan'])
             [Karyawan\PembayaranController::class, 'store'])
             ->name('pembayaran.store');
 
-       Route::get(
-    '/pinjaman/{pinjaman}/pembayaran/{pembayaran}/invoice',
-    [Karyawan\PembayaranController::class, 'invoice']
-)->name('pembayaran.invoice');
+        Route::get('/pinjaman/{pinjaman}/pembayaran/{pembayaran}/invoice',
+            [Karyawan\PembayaranController::class, 'invoice'])
+            ->name('pembayaran.invoice');
     });

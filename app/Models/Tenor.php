@@ -11,6 +11,7 @@ class Tenor extends Model
     protected $fillable = [
         'bulan',
         'label',
+        'tipe', 
         'is_active',
     ];
  

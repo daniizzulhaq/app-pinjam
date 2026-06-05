@@ -1,10 +1,13 @@
+{{-- ============================================================ --}}
+{{-- FILE: resources/views/admin/pinjaman/index.blade.php       --}}
+{{-- ============================================================ --}}
 @extends('layouts.admin')
 @section('title', 'Data Pinjaman')
 @section('page-title', 'Data Pinjaman')
- 
+
 @section('content')
 <div class="py-4">
- 
+
     {{-- FILTER --}}
     <form method="GET" class="flex flex-wrap gap-2 mb-4">
         <input type="text" name="search" value="{{ request('search') }}"
@@ -13,16 +16,16 @@
         <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none">
             <option value="">-- Semua Status --</option>
             <option value="menunggu_approval" {{ request('status') == 'menunggu_approval' ? 'selected' : '' }}>Menunggu Approval</option>
-            <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
-            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-            <option value="ditolak" {{ request('status') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+            <option value="aktif"             {{ request('status') == 'aktif'             ? 'selected' : '' }}>Aktif</option>
+            <option value="lunas"             {{ request('status') == 'lunas'             ? 'selected' : '' }}>Lunas</option>
+            <option value="ditolak"           {{ request('status') == 'ditolak'           ? 'selected' : '' }}>Ditolak</option>
         </select>
         <button class="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm">
             <i class="fa fa-filter"></i> Filter
         </button>
         <a href="{{ route('admin.pinjaman.index') }}" class="text-sm text-gray-500 px-3 py-2">Reset</a>
     </form>
- 
+
     {{-- TABLE --}}
     <div class="bg-white rounded-xl shadow overflow-x-auto">
         <table class="w-full text-sm">
@@ -39,6 +42,16 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($pinjaman as $p)
+                @php
+                    $tipe   = $p->tenor_tipe ?? 'bulanan';
+                    $satuan = $tipe === 'harian' ? 'hr' : 'bln';
+                    $badge  = [
+                        'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
+                        'aktif'             => 'bg-green-100 text-green-700',
+                        'lunas'             => 'bg-blue-100 text-blue-700',
+                        'ditolak'           => 'bg-red-100 text-red-700',
+                    ][$p->status] ?? 'bg-gray-100 text-gray-600';
+                @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-xs text-blue-600">{{ $p->no_pinjaman }}</td>
                     <td class="px-4 py-3 font-medium">{{ $p->nasabah->nama_lengkap }}</td>
@@ -46,16 +59,15 @@
                     <td class="px-4 py-3 text-right font-medium">
                         Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}
                     </td>
-                    <td class="px-4 py-3 text-center">{{ $p->tenor_bulan }} bln</td>
                     <td class="px-4 py-3 text-center">
-                        @php
-                            $badge = [
-                                'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
-                                'aktif'             => 'bg-green-100 text-green-700',
-                                'lunas'             => 'bg-blue-100 text-blue-700',
-                                'ditolak'           => 'bg-red-100 text-red-700',
-                            ][$p->status] ?? 'bg-gray-100 text-gray-600';
-                        @endphp
+                        <span>{{ $p->tenor_bulan }} {{ $satuan }}</span>
+                        @if($tipe === 'harian')
+                            <span class="block text-xs text-orange-500 mt-0.5">
+                                <i class="fa fa-sun-o mr-0.5"></i>Harian
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize">
                             {{ str_replace('_', ' ', $p->status) }}
                         </span>
