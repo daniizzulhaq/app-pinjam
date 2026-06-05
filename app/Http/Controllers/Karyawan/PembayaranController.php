@@ -6,24 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\{Pinjaman, Pembayaran};
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PembayaranController extends Controller
 {
     public function create(Pinjaman $pinjaman)
     {
-        // Hanya karyawan yang menginput pinjaman ini yang boleh akses
         if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
         }
 
-        // Pinjaman harus berstatus aktif
         if ($pinjaman->status !== 'aktif') {
             return redirect()->route('karyawan.pinjaman.show', $pinjaman)
                 ->with('error', 'Pembayaran hanya bisa diinput untuk pinjaman berstatus aktif. Status saat ini: ' . $pinjaman->status);
         }
 
-        // Cek angsuran sudah melebihi tenor
         $angsuranKe = $pinjaman->pembayaran->count() + 1;
         if ($angsuranKe > $pinjaman->tenor_bulan) {
             return redirect()->route('karyawan.pinjaman.show', $pinjaman)
@@ -35,7 +33,6 @@ class PembayaranController extends Controller
 
     public function store(Request $request, Pinjaman $pinjaman)
     {
-        // Hanya karyawan yang menginput pinjaman ini yang boleh store
         if ((int) $pinjaman->user_id !== (int) auth()->id()) {
             return redirect()->route('karyawan.pinjaman.index')
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
@@ -78,22 +75,11 @@ class PembayaranController extends Controller
             default                                                              => 'sebagian',
         };
 
-        // -------------------------------------------------------
-        // Upload bukti — simpan ke public_html/storage/bukti_pembayaran/
-        // konsisten dengan foto nasabah di public_html/storage/nasabah/
-        // -------------------------------------------------------
+        // Sama persis dengan pola upload foto nasabah
         $buktiPath = null;
         if ($request->hasFile('bukti_pembayaran')) {
-            $file     = $request->file('bukti_pembayaran');
-            $namaFile = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $tujuan   = public_path('storage/bukti_pembayaran');
-
-            if (!file_exists($tujuan)) {
-                mkdir($tujuan, 0755, true);
-            }
-
-            $file->move($tujuan, $namaFile);
-            $buktiPath = 'bukti_pembayaran/' . $namaFile;
+            $buktiPath = $request->file('bukti_pembayaran')
+                ->store('bukti_pembayaran', 'public');
         }
 
         Pembayaran::create([

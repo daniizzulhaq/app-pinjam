@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Pembayaran extends Model
 {
@@ -24,7 +25,7 @@ class Pembayaran extends Model
         'jenis_pembayaran',
         'status',
         'keterangan',
-        'bukti_pembayaran', // ← tambahan
+        'bukti_pembayaran',
     ];
 
     protected $casts = [
@@ -49,10 +50,11 @@ class Pembayaran extends Model
     }
 
     // ---- ACCESSOR URL BUKTI ----
+    // Sama persis dengan cara nasabah generate URL foto
     public function getBuktiUrlAttribute(): ?string
     {
         if (!$this->bukti_pembayaran) return null;
-        return asset('storage/' . $this->bukti_pembayaran);
+        return Storage::disk('public')->url($this->bukti_pembayaran);
     }
 
     // ---- RELATIONS ----
