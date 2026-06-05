@@ -116,7 +116,7 @@ class PembayaranController extends Controller
                 ->with('error', 'Anda tidak memiliki akses ke pinjaman ini.');
         }
 
-        abort_if($pembayaran->pinjaman_id !== $pinjaman->id, 404);
+        abort_if((int) $pembayaran->pinjaman_id !== (int) $pinjaman->id, 404);
 
         $pinjaman->load(['nasabah', 'karyawan']);
 
