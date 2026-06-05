@@ -13,12 +13,18 @@ class DashboardController extends Controller
         $userId = auth()->id();
  
         $data = [
-            'total_nasabah'     => Nasabah::where('user_id', $userId)->count(),
-            'pinjaman_aktif'    => Pinjaman::where('user_id', $userId)->aktif()->count(),
-            'pinjaman_menunggu' => Pinjaman::where('user_id', $userId)->menunggu()->count(),
+            'total_nasabah'        => Nasabah::where('user_id', $userId)->count(),
+            'pinjaman_aktif'       => Pinjaman::where('user_id', $userId)->aktif()->count(),
+            'pinjaman_menunggu'    => Pinjaman::where('user_id', $userId)->menunggu()->count(),
             'pinjaman_jatuh_tempo' => Pinjaman::where('user_id', $userId)->jatuhTempo()->count(),
         ];
+
+        $pinjamanJatuhTempo = Pinjaman::where('user_id', $userId)
+            ->jatuhTempo()
+            ->with('nasabah')
+            ->orderBy('tanggal_jatuh_tempo')
+            ->get();
  
-        return view('karyawan.dashboard', compact('data'));
+        return view('karyawan.dashboard', compact('data', 'pinjamanJatuhTempo'));
     }
 }

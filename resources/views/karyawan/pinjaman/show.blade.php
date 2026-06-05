@@ -389,8 +389,7 @@
                             <span class="font-semibold">Hari ini adalah hari terakhir pembayaran!</span>
                             Sisa: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
                         @else
-                            <span class="font-semibold">Sudah melewati jatuh tempo {{ abs($hariSisa) }} hari!</span>
-                            Sisa hutang: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+    Sisa hutang: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
                         @endif
                     </p>
                     <p class="text-xs text-gray-400 mt-1">
