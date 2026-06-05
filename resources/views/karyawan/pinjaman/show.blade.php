@@ -156,7 +156,6 @@
                 </div>
 
             @elseif($pinjaman->status === 'menunggu_transfer_karyawan')
-                {{-- Form upload bukti --}}
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-700">
                     <i class="fa fa-info-circle mr-1"></i>
                     Dana sudah dikirim admin. Silakan transfer ke nasabah
@@ -206,10 +205,10 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         @php
             $stats = [
-                ['label'=>'Pinjaman Pokok',            'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'),   'icon'=>'fa-money-bill-wave',      'color'=>'text-gray-700'],
-                ['label'=>'Total + Bunga',             'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.'),    'icon'=>'fa-circle-dollar-to-slot', 'color'=>'text-blue-600'],
-                ['label'=>'Cicilan / '.ucfirst($satuan),'value'=>'Rp '.number_format($pinjaman->cicilan_per_bulan, 0, ',', '.'), 'icon'=>'fa-calendar-check',       'color'=>'text-emerald-600'],
-                ['label'=>'Tenor',                     'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan),                   'icon'=>'fa-hourglass-half',        'color'=>'text-amber-600'],
+                ['label'=>'Pinjaman Pokok',             'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'),   'icon'=>'fa-money-bill-wave',       'color'=>'text-gray-700'],
+                ['label'=>'Total + Bunga',              'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.'),    'icon'=>'fa-circle-dollar-to-slot',  'color'=>'text-blue-600'],
+                ['label'=>'Cicilan / '.ucfirst($satuan),'value'=>'Rp '.number_format($pinjaman->cicilan_per_bulan, 0, ',', '.'), 'icon'=>'fa-calendar-check',        'color'=>'text-emerald-600'],
+                ['label'=>'Tenor',                      'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan),                   'icon'=>'fa-hourglass-half',         'color'=>'text-amber-600'],
             ];
         @endphp
         @foreach($stats as $s)
@@ -237,11 +236,6 @@
                     class="px-4 py-2 rounded-lg text-sm font-medium transition">
                 <i class="fa fa-info-circle mr-1"></i> Detail Pinjaman
             </button>
-            <button @click="tab='jadwal'"
-                    :class="tab==='jadwal' ? 'bg-emerald-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition">
-                <i class="fa fa-calendar mr-1"></i> Jadwal Angsuran
-            </button>
         </div>
 
         {{-- Tab: Riwayat Pembayaran --}}
@@ -251,13 +245,13 @@
                     <div>
                         <h3 class="font-semibold text-gray-800">Riwayat Pembayaran</h3>
                         <p class="text-xs text-gray-400 mt-0.5">
-                            {{ $pinjaman->pembayaran->count() }} dari {{ $pinjaman->tenor_bulan }} angsuran
+                            {{ $pinjaman->pembayaran->count() }} kali pembayaran tercatat
                         </p>
                     </div>
                     @if(!$sudahLunas && $pinjaman->status === 'aktif')
                         <a href="{{ route('karyawan.pembayaran.create', $pinjaman) }}"
                            class="inline-flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg text-xs font-semibold transition">
-                            <i class="fa fa-plus"></i> Catat Angsuran ke-{{ $angsuranKe }}
+                            <i class="fa fa-plus"></i> Catat Pembayaran
                         </a>
                     @endif
                 </div>
@@ -267,7 +261,7 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-gray-50 text-left">
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Ke</th>
+                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
                                 <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Tgl Bayar</th>
                                 <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Jenis</th>
                                 <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Dibayar</th>
@@ -277,12 +271,12 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
-                            @foreach($pinjaman->pembayaran->sortByDesc('angsuran_ke') as $p)
+                            @foreach($pinjaman->pembayaran->sortByDesc('tanggal_bayar') as $p)
                             <tr class="hover:bg-gray-50/60 transition">
                                 <td class="px-5 py-3.5">
                                     <span class="inline-flex items-center justify-center w-7 h-7 rounded-full
                                         {{ $p->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}
-                                        text-xs font-bold">{{ $p->angsuran_ke }}</span>
+                                        text-xs font-bold">{{ $loop->iteration }}</span>
                                 </td>
                                 <td class="px-5 py-3.5 text-gray-700">
                                     {{ \Carbon\Carbon::parse($p->tanggal_bayar)->format('d M Y') }}
@@ -355,6 +349,7 @@
                 @endif
             </div>
 
+            {{-- Notifikasi Lunas --}}
             @if($sudahLunas)
             <div class="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
                 <div class="w-9 h-9 flex-shrink-0 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -367,26 +362,39 @@
             </div>
             @endif
 
+            {{-- Notifikasi Jatuh Tempo --}}
             @if(!$sudahLunas && $pinjaman->status === 'aktif')
             @php
-                $start          = \Carbon\Carbon::parse($pinjaman->tanggal_mulai);
-                $jatuhTempoNext = $isHarian ? $start->addDays($angsuranKe) : $start->addMonths($angsuranKe);
-                $hariMenunggu   = now()->diffInDays($jatuhTempoNext, false);
+                $start           = \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->startOfDay();
+                $jatuhTempoAkhir = $isHarian
+                    ? $start->copy()->addDays($pinjaman->tenor_bulan)
+                    : $start->copy()->addMonths($pinjaman->tenor_bulan);
+                $hariSisa        = (int) now()->startOfDay()->diffInDays($jatuhTempoAkhir, false);
             @endphp
-            <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                <div class="w-9 h-9 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
-                    <i class="fa fa-bell text-blue-600"></i>
+            <div class="mt-4 border rounded-xl p-4 flex items-start gap-3
+                {{ $hariSisa < 0 ? 'bg-red-50 border-red-200' : ($hariSisa <= 3 ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200') }}">
+                <div class="w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center
+                    {{ $hariSisa < 0 ? 'bg-red-100' : ($hariSisa <= 3 ? 'bg-amber-100' : 'bg-blue-100') }}">
+                    <i class="fa fa-bell {{ $hariSisa < 0 ? 'text-red-600' : ($hariSisa <= 3 ? 'text-amber-600' : 'text-blue-600') }}"></i>
                 </div>
                 <div>
-                    <p class="font-semibold text-blue-800">
-                        Angsuran ke-{{ $angsuranKe }} jatuh tempo {{ $jatuhTempoNext->translatedFormat('d F Y') }}
+                    <p class="font-semibold {{ $hariSisa < 0 ? 'text-red-800' : ($hariSisa <= 3 ? 'text-amber-800' : 'text-blue-800') }}">
+                        Jatuh Tempo: {{ $jatuhTempoAkhir->translatedFormat('d F Y') }}
                     </p>
-                    <p class="text-sm text-blue-600 mt-0.5">
-                        @if($hariMenunggu > 0) {{ $hariMenunggu }} hari lagi &bull;
-                        @elseif($hariMenunggu == 0) <span class="text-amber-600 font-medium">Hari ini!</span> &bull;
-                        @else <span class="text-red-600 font-medium">Sudah lewat {{ abs($hariMenunggu) }} hari</span> &bull;
+                    <p class="text-sm mt-0.5 {{ $hariSisa < 0 ? 'text-red-600' : ($hariSisa <= 3 ? 'text-amber-600' : 'text-blue-600') }}">
+                        @if($hariSisa > 0)
+                            Sisa <strong>{{ $hariSisa }} hari</strong> untuk melunasi
+                            <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+                        @elseif($hariSisa == 0)
+                            <span class="font-semibold">Hari ini adalah hari terakhir pembayaran!</span>
+                            Sisa: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+                        @else
+                            <span class="font-semibold">Sudah melewati jatuh tempo {{ abs($hariSisa) }} hari!</span>
+                            Sisa hutang: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
                         @endif
-                        Nominal: <strong>Rp {{ number_format($pinjaman->cicilan_per_bulan, 0, ',', '.') }}</strong> / {{ $satuan }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Mulai: {{ $start->translatedFormat('d F Y') }} &bull; Tenor: {{ $pinjaman->tenor_bulan }} {{ $satuan }}
                     </p>
                 </div>
             </div>
@@ -403,17 +411,16 @@
                             ? \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->addDays($pinjaman->tenor_bulan)
                             : \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->addMonths($pinjaman->tenor_bulan);
                         $fields = [
-                            ['label'=>'Nama Nasabah',    'value'=>$pinjaman->nasabah->nama_lengkap],
-                            ['label'=>'No. Pinjaman',    'value'=>$pinjaman->no_pinjaman, 'mono'=>true],
-                            ['label'=>'Jumlah Pinjaman', 'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.')],
-                            ['label'=>'Total Bunga',     'value'=>'Rp '.number_format($pinjaman->total_bunga, 0, ',', '.')],
-                            ['label'=>'Total Pinjaman',  'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.')],
-                            ['label'=>'Cicilan/'.ucfirst($satuan), 'value'=>'Rp '.number_format($pinjaman->cicilan_per_bulan, 0, ',', '.')],
-                            ['label'=>'Tenor',           'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan).' ('.ucfirst($tipe).')'],
-                            ['label'=>'Suku Bunga',      'value'=>($pinjaman->bunga_persen ?? '-').'% / bulan'],
-                            ['label'=>'Tanggal Mulai',   'value'=>\Carbon\Carbon::parse($pinjaman->tanggal_mulai)->translatedFormat('d F Y')],
-                            ['label'=>'Tanggal Selesai', 'value'=>$tanggalSelesai->translatedFormat('d F Y')],
-                            ['label'=>'Status',          'value'=>$badge['label']],
+                            ['label'=>'Nama Nasabah',     'value'=>$pinjaman->nasabah->nama_lengkap],
+                            ['label'=>'No. Pinjaman',     'value'=>$pinjaman->no_pinjaman, 'mono'=>true],
+                            ['label'=>'Jumlah Pinjaman',  'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.')],
+                            ['label'=>'Total Bunga',      'value'=>'Rp '.number_format($pinjaman->total_bunga, 0, ',', '.')],
+                            ['label'=>'Total Pinjaman',   'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.')],
+                            ['label'=>'Tenor',            'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan).' ('.ucfirst($tipe).')'],
+                            ['label'=>'Suku Bunga',       'value'=>($pinjaman->bunga_persen ?? '-').'% / bulan'],
+                            ['label'=>'Tanggal Mulai',    'value'=>\Carbon\Carbon::parse($pinjaman->tanggal_mulai)->translatedFormat('d F Y')],
+                            ['label'=>'Jatuh Tempo',      'value'=>$tanggalSelesai->translatedFormat('d F Y')],
+                            ['label'=>'Status',           'value'=>$badge['label']],
                             ['label'=>'Catatan Pengajuan','value'=>$pinjaman->catatan_pengajuan ?? '-'],
                         ];
                     @endphp
@@ -427,76 +434,6 @@
                         @endif
                     </div>
                     @endforeach
-                </div>
-            </div>
-        </div>
-
-        {{-- Tab: Jadwal Angsuran --}}
-        <div x-show="tab==='jadwal'" x-transition>
-            <div class="bg-white rounded-2xl shadow overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="font-semibold text-gray-800">Jadwal Angsuran</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">
-                        Simulasi jadwal {{ $pinjaman->tenor_bulan }} kali angsuran ({{ $tipe }})
-                    </p>
-                </div>
-                <div class="overflow-x-auto max-h-[520px] overflow-y-auto">
-                    <table class="w-full text-sm">
-                        <thead class="sticky top-0 bg-white z-10 shadow-sm">
-                            <tr class="bg-gray-50 text-left border-b border-gray-100">
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Ke</th>
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Jatuh Tempo</th>
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Cicilan</th>
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Pokok</th>
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Bunga</th>
-                                <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            @php
-                                $bungaPerPeriode = $pinjaman->total_bunga / $pinjaman->tenor_bulan;
-                                $pokokPerPeriode = $pinjaman->jumlah_pinjaman / $pinjaman->tenor_bulan;
-                                $bayarMap        = $pinjaman->pembayaran->keyBy('angsuran_ke');
-                                $startDate       = \Carbon\Carbon::parse($pinjaman->tanggal_mulai);
-                            @endphp
-                            @for($i = 1; $i <= $pinjaman->tenor_bulan; $i++)
-                                @php
-                                    $tgl        = $isHarian ? (clone $startDate)->addDays($i) : (clone $startDate)->addMonths($i);
-                                    $bayar      = $bayarMap->get($i);
-                                    $sudahBayar = !is_null($bayar);
-                                    $isNow      = !$sudahBayar && $i === $angsuranKe;
-                                @endphp
-                                <tr class="{{ $isNow ? 'bg-blue-50' : ($sudahBayar ? 'bg-emerald-50/40' : 'hover:bg-gray-50/60') }} transition">
-                                    <td class="px-5 py-3">
-                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold
-                                            {{ $sudahBayar ? 'bg-emerald-100 text-emerald-700' : ($isNow ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500') }}">
-                                            {{ $i }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-700">
-                                        {{ $tgl->translatedFormat('d M Y') }}
-                                        @if($isNow) <span class="ml-1 text-xs text-blue-600 font-medium">← Berikutnya</span> @endif
-                                    </td>
-                                    <td class="px-5 py-3 text-right font-semibold text-gray-800">
-                                        Rp {{ number_format($pinjaman->cicilan_per_bulan, 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-5 py-3 text-right text-gray-600">Rp {{ number_format($pokokPerPeriode, 0, ',', '.') }}</td>
-                                    <td class="px-5 py-3 text-right text-gray-600">Rp {{ number_format($bungaPerPeriode, 0, ',', '.') }}</td>
-                                    <td class="px-5 py-3">
-                                        @if($sudahBayar)
-                                            <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                                                {{ $bayar->status === 'lunas' ? 'Lunas' : 'Sebagian' }}
-                                            </span>
-                                        @elseif($isNow)
-                                            <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">Menunggu</span>
-                                        @else
-                                            <span class="text-gray-300 text-xs">—</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endfor
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
