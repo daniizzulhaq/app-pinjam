@@ -48,6 +48,10 @@ Route::middleware(['auth', 'is_admin'])
         Route::get('/pembayaran-denda',
             [Admin\PembayaranController::class, 'denda'])
             ->name('pembayaran.denda');
+        
+        Route::get('/pembayaran/{pembayaran}/invoice',
+            [Admin\PembayaranController::class, 'invoice'])
+            ->name('pembayaran.invoice');
 
         // ==========================
         // PROFIL ADMIN

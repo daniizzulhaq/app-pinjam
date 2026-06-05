@@ -7,16 +7,23 @@
 <div class="py-4">
 
     {{-- HEADER --}}
-    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-lg font-semibold text-gray-800">Detail Pembayaran</h2>
             <p class="text-xs text-gray-400 mt-0.5">Informasi lengkap transaksi pembayaran</p>
         </div>
-        <a href="{{ route('admin.pembayaran.index') }}"
-           class="inline-flex items-center gap-1.5 text-sm bg-gray-100 hover:bg-gray-200
-                  text-gray-600 px-4 py-2 rounded-lg transition font-medium">
-            <i class="fa fa-arrow-left text-xs"></i> Kembali
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.pembayaran.invoice', $pembayaran) }}"
+               class="inline-flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700
+                      text-white px-4 py-2 rounded-lg transition font-medium">
+                <i class="fa fa-file-invoice text-xs"></i> Lihat Invoice
+            </a>
+            <a href="{{ route('admin.pembayaran.index') }}"
+               class="inline-flex items-center gap-1.5 text-sm bg-gray-100 hover:bg-gray-200
+                      text-gray-600 px-4 py-2 rounded-lg transition font-medium">
+                <i class="fa fa-arrow-left text-xs"></i> Kembali
+            </a>
+        </div>
     </div>
 
     {{-- BADGE NO PEMBAYARAN --}}

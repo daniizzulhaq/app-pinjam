@@ -42,6 +42,28 @@ class PembayaranController extends Controller
         ));
     }
 
+    public function invoice(Pembayaran $pembayaran)
+    {
+        $pembayaran->load(['pinjaman.nasabah', 'karyawan', 'pinjaman.bunga', 'pinjaman.tenor']);
+
+        $pinjaman = $pembayaran->pinjaman;
+
+        $totalBayarSebelumnya = Pembayaran::where('pinjaman_id', $pembayaran->pinjaman_id)
+            ->where('id', '<', $pembayaran->id)
+            ->sum('jumlah_dibayar');
+
+        $totalBayarSampaiIni = $totalBayarSebelumnya + $pembayaran->jumlah_dibayar;
+        $sisaSetelahBayar    = max(0, $pinjaman->total_pinjaman - $totalBayarSampaiIni);
+
+        return view('admin.pembayaran.invoice', compact(
+            'pembayaran',
+            'pinjaman',
+            'totalBayarSebelumnya',
+            'totalBayarSampaiIni',
+            'sisaSetelahBayar',
+        ));
+    }
+
     public function denda()
     {
         $pembayaran = Pembayaran::with(['pinjaman.nasabah'])
