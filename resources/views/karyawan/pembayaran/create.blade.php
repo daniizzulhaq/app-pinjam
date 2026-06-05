@@ -13,12 +13,15 @@
     </div>
 
     @php
+        $isHarian   = $pinjaman->tenor_tipe === 'harian';
         $totalBayar = $pinjaman->pembayaran->sum('jumlah_dibayar');
         $sisaHutang = $pinjaman->total_pinjaman - $totalBayar;
         $persen     = $pinjaman->total_pinjaman > 0
             ? min(100, round($totalBayar / $pinjaman->total_pinjaman * 100))
             : 0;
         $profil = \App\Models\ProfilAdmin::profil();
+        $jatuhTempo = \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo);
+        $hariSisa   = now()->startOfDay()->diffInDays($jatuhTempo->startOfDay(), false);
     @endphp
 
     {{-- Info Pinjaman --}}
@@ -33,6 +36,45 @@
                 <p class="text-gray-400 text-xs">No. Pinjaman</p>
                 <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-blue-600">{{ $pinjaman->no_pinjaman }}</code>
             </div>
+
+            @if($isHarian)
+            {{-- Info khusus harian --}}
+            <div>
+                <p class="text-gray-400 text-xs">Pokok Pinjaman</p>
+                <p class="font-bold text-gray-800">Rp {{ number_format($pinjaman->jumlah_pinjaman, 0, ',', '.') }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400 text-xs">Bunga (Flat 1 Bulan)</p>
+                <p class="font-bold text-orange-500">Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400 text-xs">Jatuh Tempo</p>
+                <p class="font-bold {{ $hariSisa < 0 ? 'text-red-600' : ($hariSisa <= 3 ? 'text-orange-500' : 'text-gray-800') }}">
+                    {{ $jatuhTempo->translatedFormat('d F Y') }}
+                    @if($hariSisa < 0)
+                        <span class="text-xs">(Terlambat {{ abs($hariSisa) }} hari)</span>
+                    @elseif($hariSisa == 0)
+                        <span class="text-xs">(Hari ini)</span>
+                    @else
+                        <span class="text-xs text-gray-400">({{ $hariSisa }} hari lagi)</span>
+                    @endif
+                </p>
+            </div>
+            <div>
+                <p class="text-gray-400 text-xs">Tenor</p>
+                <p class="font-semibold text-gray-700">{{ $pinjaman->tenor_bulan }} Hari</p>
+            </div>
+            <div>
+                <p class="text-gray-400 text-xs">Total Dibayar</p>
+                <p class="font-semibold text-gray-700">Rp {{ number_format($totalBayar, 0, ',', '.') }}</p>
+            </div>
+            <div>
+                <p class="text-gray-400 text-xs">Sisa Hutang</p>
+                <p class="font-semibold text-red-500">Rp {{ number_format($sisaHutang, 0, ',', '.') }}</p>
+            </div>
+
+            @else
+            {{-- Info bulanan --}}
             <div>
                 <p class="text-gray-400 text-xs">Cicilan per Bulan</p>
                 <p class="font-bold text-emerald-600">Rp {{ number_format($pinjaman->cicilan_per_bulan, 0, ',', '.') }}</p>
@@ -49,7 +91,17 @@
                 <p class="text-gray-400 text-xs">Sisa Hutang</p>
                 <p class="font-semibold text-red-500">Rp {{ number_format($sisaHutang, 0, ',', '.') }}</p>
             </div>
+            @endif
         </div>
+
+        {{-- Badge harian --}}
+        @if($isHarian)
+        <div class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-xs text-orange-700 mb-3">
+            <i class="fa fa-sun mr-1"></i>
+            <strong>Pinjaman Harian:</strong> Bayar bunga saja untuk memperpanjang {{ $pinjaman->tenor_bulan }} hari,
+            atau bayar lunas (bunga + pokok) untuk menutup pinjaman.
+        </div>
+        @endif
 
         {{-- Progress --}}
         <div class="flex justify-between text-xs text-gray-400 mb-1">
@@ -97,7 +149,13 @@
     {{-- Form Pembayaran --}}
     <div class="bg-white rounded-xl shadow p-6">
         <div class="mb-6 pb-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-800">Form Pembayaran Angsuran ke-{{ $angsuranKe }}</h2>
+            <h2 class="text-base font-semibold text-gray-800">
+                @if($isHarian)
+                    Form Pembayaran Pinjaman Harian
+                @else
+                    Form Pembayaran Angsuran ke-{{ $angsuranKe }}
+                @endif
+            </h2>
             <p class="text-sm text-gray-400 mt-0.5">Isi data pembayaran dengan benar</p>
         </div>
 
@@ -131,18 +189,35 @@
                         class="w-full border {{ $errors->has('jenis_pembayaran') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}
                                rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                     <option value="">-- Pilih Jenis --</option>
-                    <option value="cicilan_normal"   {{ old('jenis_pembayaran') == 'cicilan_normal'   ? 'selected' : '' }}>
-                        Cicilan Normal — Rp {{ number_format($pinjaman->cicilan_per_bulan, 0, ',', '.') }}
-                    </option>
-                    <option value="bayar_lunas"      {{ old('jenis_pembayaran') == 'bayar_lunas'      ? 'selected' : '' }}>
-                        Bayar Lunas — Rp {{ number_format($sisaHutang, 0, ',', '.') }}
-                    </option>
-                    <option value="bayar_bunga_saja" {{ old('jenis_pembayaran') == 'bayar_bunga_saja' ? 'selected' : '' }}>
-                        Bayar Bunga Saja
-                    </option>
-                    <option value="tidak_bayar"      {{ old('jenis_pembayaran') == 'tidak_bayar'      ? 'selected' : '' }}>
-                        Tidak Bayar (Catat Tunggakan)
-                    </option>
+
+                    @if($isHarian)
+                        {{-- Harian: hanya bunga saja atau lunas --}}
+                        <option value="bayar_bunga_saja" {{ old('jenis_pembayaran') == 'bayar_bunga_saja' ? 'selected' : '' }}>
+                            Bayar Bunga Saja — Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}
+                            (Perpanjang {{ $pinjaman->tenor_bulan }} hari)
+                        </option>
+                        <option value="bayar_lunas" {{ old('jenis_pembayaran') == 'bayar_lunas' ? 'selected' : '' }}>
+                            Bayar Lunas — Rp {{ number_format($sisaHutang, 0, ',', '.') }}
+                            (Bunga + Pokok)
+                        </option>
+                        <option value="tidak_bayar" {{ old('jenis_pembayaran') == 'tidak_bayar' ? 'selected' : '' }}>
+                            Tidak Bayar (Catat Tunggakan)
+                        </option>
+                    @else
+                        {{-- Bulanan: cicilan normal, lunas, bunga saja, tidak bayar --}}
+                        <option value="cicilan_normal" {{ old('jenis_pembayaran') == 'cicilan_normal' ? 'selected' : '' }}>
+                            Cicilan Normal — Rp {{ number_format($pinjaman->cicilan_per_bulan, 0, ',', '.') }}
+                        </option>
+                        <option value="bayar_lunas" {{ old('jenis_pembayaran') == 'bayar_lunas' ? 'selected' : '' }}>
+                            Bayar Lunas — Rp {{ number_format($sisaHutang, 0, ',', '.') }}
+                        </option>
+                        <option value="bayar_bunga_saja" {{ old('jenis_pembayaran') == 'bayar_bunga_saja' ? 'selected' : '' }}>
+                            Bayar Bunga Saja
+                        </option>
+                        <option value="tidak_bayar" {{ old('jenis_pembayaran') == 'tidak_bayar' ? 'selected' : '' }}>
+                            Tidak Bayar (Catat Tunggakan)
+                        </option>
+                    @endif
                 </select>
                 @error('jenis_pembayaran')
                     <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
@@ -177,20 +252,16 @@
                               focus:outline-none focus:ring-2 focus:ring-emerald-400">
             </div>
 
-            {{-- Upload Bukti Pembayaran --}}
+            {{-- Upload Bukti --}}
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Bukti Pembayaran
                     <span class="text-gray-400 font-normal">(Opsional)</span>
                 </label>
-
-                {{-- Drop area --}}
                 <div id="dropArea"
                      onclick="document.getElementById('buktiInput').click()"
                      class="relative cursor-pointer border-2 border-dashed rounded-xl p-5 text-center transition
                             {{ $errors->has('bukti_pembayaran') ? 'border-red-400 bg-red-50' : 'border-gray-300 hover:border-emerald-400 hover:bg-emerald-50/30' }}">
-
-                    {{-- Placeholder --}}
                     <div id="buktiPlaceholder">
                         <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                             <i class="fa fa-cloud-upload-alt text-gray-400 text-xl"></i>
@@ -198,50 +269,26 @@
                         <p class="text-sm text-gray-500">Klik atau drag foto bukti transfer ke sini</p>
                         <p class="text-xs text-gray-400 mt-1">JPG, PNG, WEBP · Maks 3 MB</p>
                     </div>
-
-                    {{-- Preview --}}
                     <div id="buktiPreviewWrap" class="hidden">
-                        <img id="buktiPreview"
-                             src=""
-                             alt="Preview"
+                        <img id="buktiPreview" src="" alt="Preview"
                              class="mx-auto max-h-48 rounded-lg object-contain border border-gray-200 shadow-sm">
                         <p id="buktiFileName" class="text-xs text-gray-500 mt-2"></p>
-                        <button type="button"
-                                onclick="hapusBukti(event)"
+                        <button type="button" onclick="hapusBukti(event)"
                                 class="mt-2 text-xs text-red-500 hover:text-red-700 underline">
                             <i class="fa fa-times mr-1"></i> Hapus
                         </button>
                     </div>
                 </div>
-
-                <input type="file"
-                       id="buktiInput"
-                       name="bukti_pembayaran"
-                       accept="image/*"
-                       class="hidden">
-
+                <input type="file" id="buktiInput" name="bukti_pembayaran" accept="image/*" class="hidden">
                 @error('bukti_pembayaran')
                     <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                 @enderror
             </div>
 
             {{-- Ringkasan --}}
-            <div id="ringkasan" class="hidden mb-5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm">
-                <h4 class="font-semibold text-emerald-700 mb-2">✅ Ringkasan Pembayaran</h4>
-                <div class="space-y-1 text-gray-700">
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Angsuran ke</span>
-                        <span class="font-medium">{{ $angsuranKe }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Jumlah Dibayar</span>
-                        <span id="ring_bayar" class="font-bold text-emerald-600">-</span>
-                    </div>
-                    <div class="flex justify-between border-t pt-1 mt-1">
-                        <span class="text-gray-500">Sisa Setelah Bayar</span>
-                        <span id="ring_sisa" class="font-bold text-red-500">-</span>
-                    </div>
-                </div>
+            <div id="ringkasan" class="hidden mb-5 rounded-xl p-4 text-sm border">
+                <h4 class="font-semibold mb-2" id="ring_judul">✅ Ringkasan Pembayaran</h4>
+                <div class="space-y-1 text-gray-700" id="ring_detail"></div>
             </div>
 
             {{-- Actions --}}
@@ -257,35 +304,89 @@
             </div>
         </form>
     </div>
-
 </div>
 
 <script>
+const isHarian      = {{ $isHarian ? 'true' : 'false' }};
 const cicilan       = {{ $pinjaman->cicilan_per_bulan }};
 const sisaHutang    = {{ $sisaHutang }};
+const bungaFlat     = {{ $pinjaman->total_bunga }};
+const pokok         = {{ $pinjaman->jumlah_pinjaman }};
+const tenorHari     = {{ $pinjaman->tenor_bulan }};
 const bungaPerBulan = {{ $pinjaman->total_bunga / $pinjaman->tenor_bulan }};
+
+const fmt = v => 'Rp ' + Math.round(v).toLocaleString('id-ID');
 
 function handleJenis(val) {
     const input = document.getElementById('jumlah_dibayar');
-    if (val === 'cicilan_normal')    input.value = Math.round(cicilan);
-    if (val === 'bayar_lunas')       input.value = Math.round(sisaHutang);
-    if (val === 'bayar_bunga_saja')  input.value = Math.round(bungaPerBulan);
-    if (val === 'tidak_bayar')       input.value = 0;
-    updateRingkasan();
+
+    if (isHarian) {
+        if (val === 'bayar_bunga_saja') input.value = Math.round(bungaFlat);
+        if (val === 'bayar_lunas')      input.value = Math.round(sisaHutang);
+        if (val === 'tidak_bayar')      input.value = 0;
+    } else {
+        if (val === 'cicilan_normal')   input.value = Math.round(cicilan);
+        if (val === 'bayar_lunas')      input.value = Math.round(sisaHutang);
+        if (val === 'bayar_bunga_saja') input.value = Math.round(bungaPerBulan);
+        if (val === 'tidak_bayar')      input.value = 0;
+    }
+
+    updateRingkasan(val);
 }
 
-function updateRingkasan() {
+function updateRingkasan(val) {
+    val = val || document.getElementById('jenis_pembayaran').value;
     const bayar = parseFloat(document.getElementById('jumlah_dibayar').value) || 0;
-    const sisa  = Math.max(0, sisaHutang - bayar);
-    const fmt   = v => 'Rp ' + v.toLocaleString('id-ID', { maximumFractionDigits: 0 });
-    document.getElementById('ring_bayar').textContent = fmt(bayar);
-    document.getElementById('ring_sisa').textContent  = fmt(sisa);
-    document.getElementById('ringkasan').classList.toggle('hidden', bayar <= 0);
+    if (!val || bayar <= 0) {
+        document.getElementById('ringkasan').classList.add('hidden');
+        return;
+    }
+
+    let html   = '';
+    let judul  = '✅ Ringkasan Pembayaran';
+    let warna  = 'bg-emerald-50 border-emerald-200 text-emerald-700';
+
+    if (isHarian) {
+        if (val === 'bayar_bunga_saja') {
+            judul = '🔄 Bayar Bunga — Tenor Diperpanjang';
+            warna = 'bg-orange-50 border-orange-200 text-orange-700';
+            html  = `
+                <div class="flex justify-between"><span>Bunga dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
+                <div class="flex justify-between"><span>Pokok tetap</span><span class="font-bold">${fmt(pokok)}</span></div>
+                <div class="flex justify-between border-t pt-1 mt-1"><span>Jatuh tempo mundur</span><span class="font-bold">+${tenorHari} hari</span></div>
+            `;
+        } else if (val === 'bayar_lunas') {
+            judul = '✅ Bayar Lunas — Pinjaman Selesai';
+            warna = 'bg-emerald-50 border-emerald-200 text-emerald-700';
+            html  = `
+                <div class="flex justify-between"><span>Total dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
+                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
+                <div class="flex justify-between"><span>Pokok</span><span>${fmt(pokok)}</span></div>
+                <div class="flex justify-between border-t pt-1 mt-1"><span>Status pinjaman</span><span class="font-bold">LUNAS 🎉</span></div>
+            `;
+        } else if (val === 'tidak_bayar') {
+            judul = '⚠️ Catat Tunggakan';
+            warna = 'bg-red-50 border-red-200 text-red-700';
+            html  = `<div class="flex justify-between"><span>Status</span><span class="font-bold">Tunggakan dicatat</span></div>`;
+        }
+    } else {
+        const sisa = Math.max(0, sisaHutang - bayar);
+        html = `
+            <div class="flex justify-between"><span>Jumlah Dibayar</span><span class="font-bold">${fmt(bayar)}</span></div>
+            <div class="flex justify-between border-t pt-1 mt-1"><span>Sisa Setelah Bayar</span><span class="font-bold text-red-500">${fmt(sisa)}</span></div>
+        `;
+    }
+
+    const el = document.getElementById('ringkasan');
+    el.className = `mb-5 rounded-xl p-4 text-sm border ${warna}`;
+    document.getElementById('ring_judul').textContent  = judul;
+    document.getElementById('ring_detail').innerHTML   = html;
+    el.classList.remove('hidden');
 }
 
-document.getElementById('jumlah_dibayar').addEventListener('input', updateRingkasan);
+document.getElementById('jumlah_dibayar').addEventListener('input', () => updateRingkasan());
 
-// ---- Salin Rekening ----
+// Salin Rekening
 function salinRekening(noRek, btn) {
     navigator.clipboard.writeText(noRek).then(() => {
         const ori = btn.innerHTML;
@@ -300,7 +401,7 @@ function salinRekening(noRek, btn) {
     });
 }
 
-// ---- Upload Bukti ----
+// Upload Bukti
 const buktiInput       = document.getElementById('buktiInput');
 const buktiPreview     = document.getElementById('buktiPreview');
 const buktiPreviewWrap = document.getElementById('buktiPreviewWrap');
@@ -310,7 +411,7 @@ const buktiFileName    = document.getElementById('buktiFileName');
 buktiInput.addEventListener('change', function () {
     const file = this.files[0];
     if (!file) return;
-    buktiPreview.src     = URL.createObjectURL(file);
+    buktiPreview.src          = URL.createObjectURL(file);
     buktiFileName.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
     buktiPlaceholder.classList.add('hidden');
     buktiPreviewWrap.classList.remove('hidden');
@@ -318,14 +419,13 @@ buktiInput.addEventListener('change', function () {
 
 function hapusBukti(e) {
     e.stopPropagation();
-    buktiInput.value     = '';
-    buktiPreview.src     = '';
+    buktiInput.value          = '';
+    buktiPreview.src          = '';
     buktiFileName.textContent = '';
     buktiPlaceholder.classList.remove('hidden');
     buktiPreviewWrap.classList.add('hidden');
 }
 
-// Drag & Drop
 const dropArea = document.getElementById('dropArea');
 dropArea.addEventListener('dragover',  e => { e.preventDefault(); dropArea.classList.add('border-emerald-400', 'bg-emerald-50'); });
 dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-emerald-400', 'bg-emerald-50'));
@@ -334,7 +434,7 @@ dropArea.addEventListener('drop', e => {
     dropArea.classList.remove('border-emerald-400', 'bg-emerald-50');
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
-        const dt  = new DataTransfer();
+        const dt = new DataTransfer();
         dt.items.add(file);
         buktiInput.files = dt.files;
         buktiInput.dispatchEvent(new Event('change'));
