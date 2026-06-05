@@ -24,11 +24,11 @@ class PembayaranController extends Controller
         abort_if($pinjaman->user_id !== auth()->id(), 403);
 
         $validated = $request->validate([
-            'tanggal_bayar'     => ['required', 'date'],
-            'jenis_pembayaran'  => ['required', 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar,cicilan_normal'],
-            'jumlah_dibayar'    => ['required', 'numeric', 'min:0'],
-            'keterangan'        => ['nullable', 'string', 'max:255'],
-            'bukti_pembayaran'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'tanggal_bayar'    => ['required', 'date'],
+            'jenis_pembayaran' => ['required', 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar,cicilan_normal'],
+            'jumlah_dibayar'   => ['required', 'numeric', 'min:0'],
+            'keterangan'       => ['nullable', 'string', 'max:255'],
+            'bukti_pembayaran' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
         ], [
             'bukti_pembayaran.image' => 'File bukti harus berupa gambar.',
             'bukti_pembayaran.max'   => 'Ukuran bukti maksimal 3 MB.',
@@ -55,11 +55,27 @@ class PembayaranController extends Controller
             default                                                              => 'sebagian',
         };
 
+        // -------------------------------------------------------
         // Upload bukti pembayaran
-        $buktPath = null;
+        // Disimpan ke public_html/storage/bukti_pembayaran/
+        // konsisten dengan foto nasabah di public_html/storage/nasabah/
+        // -------------------------------------------------------
+        $buktiPath = null;
         if ($request->hasFile('bukti_pembayaran')) {
-            $buktPath = $request->file('bukti_pembayaran')
-                ->store('bukti-pembayaran', 'public');
+            $file      = $request->file('bukti_pembayaran');
+            $namaFile  = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $tujuan    = public_path('storage/bukti_pembayaran');
+
+            // Buat folder jika belum ada
+            if (!file_exists($tujuan)) {
+                mkdir($tujuan, 0755, true);
+            }
+
+            $file->move($tujuan, $namaFile);
+
+            // Yang disimpan ke DB hanya path relatif dari public_html
+            // sehingga accessor getBuktiUrlAttribute() tinggal: asset('storage/bukti_pembayaran/' . filename)
+            $buktiPath = 'bukti_pembayaran/' . $namaFile;
         }
 
         $pembayaran = Pembayaran::create([
@@ -78,7 +94,7 @@ class PembayaranController extends Controller
             'jenis_pembayaran'            => $validated['jenis_pembayaran'],
             'status'                      => $statusBayar,
             'keterangan'                  => $validated['keterangan'],
-            'bukti_pembayaran'            => $buktPath,
+            'bukti_pembayaran'            => $buktiPath,
         ]);
 
         if ($angsuranKe >= $pinjaman->tenor_bulan || $validated['jenis_pembayaran'] === 'bayar_lunas') {
@@ -86,7 +102,7 @@ class PembayaranController extends Controller
         }
 
         return redirect()->route('karyawan.pinjaman.show', $pinjaman)
-                         ->with('success', 'Pembayaran angsuran ke-'.$angsuranKe.' berhasil dicatat.');
+                         ->with('success', 'Pembayaran angsuran ke-' . $angsuranKe . ' berhasil dicatat.');
     }
 
     public function invoice(Pinjaman $pinjaman, Pembayaran $pembayaran)
