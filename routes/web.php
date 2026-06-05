@@ -128,4 +128,10 @@ Route::middleware(['auth', 'is_karyawan'])
         Route::get('/pinjaman/{pinjaman}/pembayaran/{pembayaran}/invoice',
             [Karyawan\PembayaranController::class, 'invoice'])
             ->name('pembayaran.invoice');
+
+        // ==========================
+        // DENDA
+        // ==========================
+        Route::get('/denda', [Karyawan\DendaController::class, 'index'])
+            ->name('denda.index');
     });

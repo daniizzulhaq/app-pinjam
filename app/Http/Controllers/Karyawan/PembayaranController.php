@@ -9,6 +9,36 @@ use Illuminate\Http\Request;
 
 class PembayaranController extends Controller
 {
+    /**
+     * Hitung denda otomatis:
+     * Rp 50.000/hari, mulai dihitung setelah jam 17:00 di hari jatuh tempo.
+     */
+    private function hitungDenda(Pinjaman $pinjaman): array
+    {
+        $jatuhTempo = Carbon::parse($pinjaman->tanggal_jatuh_tempo);
+        $sekarang   = Carbon::now();
+
+        // Denda mulai berlaku setelah jam 17:00 hari jatuh tempo
+        $batasWaktu = $jatuhTempo->copy()->setTime(17, 0, 0);
+
+        if ($sekarang->lessThanOrEqualTo($batasWaktu)) {
+            return ['hari' => 0, 'denda' => 0];
+        }
+
+        // Hitung hari keterlambatan (dari hari jatuh tempo ke hari ini)
+        $hariTerlambat = (int) $jatuhTempo->startOfDay()->diffInDays($sekarang->startOfDay());
+
+        // Hari jatuh tempo sendiri dihitung jika sudah lewat jam 17:00
+        if ($sekarang->greaterThan($batasWaktu) && $hariTerlambat === 0) {
+            $hariTerlambat = 1;
+        }
+
+        return [
+            'hari'  => $hariTerlambat,
+            'denda' => $hariTerlambat * 50000,
+        ];
+    }
+
     public function create(Pinjaman $pinjaman)
     {
         if ((int) $pinjaman->user_id !== (int) auth()->id()) {
@@ -21,7 +51,6 @@ class PembayaranController extends Controller
                 ->with('error', 'Pembayaran hanya bisa diinput untuk pinjaman berstatus aktif. Status saat ini: ' . $pinjaman->status);
         }
 
-        // Untuk harian: tidak ada batas angsuran ke-N, bebas bayar bunga kapan saja
         if ($pinjaman->tenor_tipe !== 'harian') {
             $angsuranKe = $pinjaman->pembayaran->count() + 1;
             if ($angsuranKe > $pinjaman->tenor_bulan) {
@@ -32,7 +61,9 @@ class PembayaranController extends Controller
             $angsuranKe = $pinjaman->pembayaran->count() + 1;
         }
 
-        return view('karyawan.pembayaran.create', compact('pinjaman', 'angsuranKe'));
+        $infoDenda = $this->hitungDenda($pinjaman);
+
+        return view('karyawan.pembayaran.create', compact('pinjaman', 'angsuranKe', 'infoDenda'));
     }
 
     public function store(Request $request, Pinjaman $pinjaman)
@@ -47,7 +78,6 @@ class PembayaranController extends Controller
                 ->with('error', 'Pinjaman tidak aktif, pembayaran tidak dapat diproses.');
         }
 
-        // Validasi jenis pembayaran berdasarkan tipe tenor
         $jenisAllowed = $pinjaman->tenor_tipe === 'harian'
             ? 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar'
             : 'in:bayar_lunas,bayar_bunga_saja,tidak_bayar,cicilan_normal';
@@ -58,6 +88,8 @@ class PembayaranController extends Controller
             'jumlah_dibayar'   => ['required', 'numeric', 'min:0'],
             'keterangan'       => ['nullable', 'string', 'max:255'],
             'bukti_pembayaran' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'denda_diwaive'    => ['nullable', 'boolean'],
+            'alasan_waive'     => ['nullable', 'string', 'max:255'],
         ], [
             'bukti_pembayaran.image' => 'File bukti harus berupa gambar.',
             'bukti_pembayaran.max'   => 'Ukuran bukti maksimal 3 MB.',
@@ -66,24 +98,24 @@ class PembayaranController extends Controller
         $angsuranKe   = $pinjaman->pembayaran->count() + 1;
         $tanggalBayar = Carbon::parse($validated['tanggal_bayar']);
 
-        // Jatuh tempo cicilan — harian pakai tanggal_jatuh_tempo aktif, bulanan pakai addMonths
         if ($pinjaman->tenor_tipe === 'harian') {
             $jatuhTempoCicilan = Carbon::parse($pinjaman->tanggal_jatuh_tempo);
         } else {
             $jatuhTempoCicilan = Carbon::parse($pinjaman->tanggal_mulai)->addMonths($angsuranKe);
         }
 
-        // Hitung denda keterlambatan
-        $hariTerlambat = 0;
-        $denda         = 0;
-        if ($tanggalBayar->greaterThan($jatuhTempoCicilan)) {
-            $hariTerlambat = $tanggalBayar->diffInDays($jatuhTempoCicilan);
-            $denda         = $pinjaman->cicilan_per_bulan * 0.001 * $hariTerlambat;
-        }
+        // Hitung denda otomatis
+        $infoDenda     = $this->hitungDenda($pinjaman);
+        $hariTerlambat = $infoDenda['hari'];
+        $dendaAsli     = $infoDenda['denda'];
+
+        // Waive denda jika dicentang
+        $dendaDiwaive = (bool) ($validated['denda_diwaive'] ?? false);
+        $denda        = $dendaDiwaive ? 0 : $dendaAsli;
+        $alasanWaive  = $dendaDiwaive ? ($validated['alasan_waive'] ?? null) : null;
 
         // Hitung bunga & pokok per periode
         if ($pinjaman->tenor_tipe === 'harian') {
-            // Harian: bunga flat 1 bulan penuh, pokok = jumlah pinjaman
             $bungaPerPeriode = $pinjaman->total_bunga;
             $pokokPerPeriode = $pinjaman->jumlah_pinjaman;
         } else {
@@ -131,6 +163,8 @@ class PembayaranController extends Controller
                                                 ? $bungaPerPeriode
                                                 : ($pinjaman->tenor_tipe === 'harian' ? 0 : $bungaPerPeriode),
             'denda'                       => $denda,
+            'denda_diwaive'               => $dendaDiwaive,
+            'alasan_waive'                => $alasanWaive,
             'hari_terlambat'              => $hariTerlambat,
             'jenis_pembayaran'            => $validated['jenis_pembayaran'],
             'status'                      => $statusBayar,
@@ -138,20 +172,16 @@ class PembayaranController extends Controller
             'bukti_pembayaran'            => $buktiPath,
         ]);
 
-        // Update status pinjaman & jatuh tempo
+        // Update status & jatuh tempo pinjaman
         if ($pinjaman->tenor_tipe === 'harian') {
             if ($validated['jenis_pembayaran'] === 'bayar_lunas') {
-                // Lunas: tutup pinjaman
                 $pinjaman->update(['status' => 'lunas']);
             } elseif ($validated['jenis_pembayaran'] === 'bayar_bunga_saja') {
-                // Bayar bunga: mundurkan jatuh tempo sesuai tenor (hari)
                 $jatuhTempoMundur = Carbon::parse($pinjaman->tanggal_jatuh_tempo)
                     ->addDays($pinjaman->tenor_bulan);
                 $pinjaman->update(['tanggal_jatuh_tempo' => $jatuhTempoMundur]);
             }
-            // tidak_bayar: tidak ada perubahan
         } else {
-            // Bulanan: lunas jika angsuran sudah habis atau bayar lunas
             if ($angsuranKe >= $pinjaman->tenor_bulan || $validated['jenis_pembayaran'] === 'bayar_lunas') {
                 $pinjaman->update(['status' => 'lunas']);
             }
