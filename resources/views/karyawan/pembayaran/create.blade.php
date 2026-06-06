@@ -65,7 +65,7 @@
                 <p class="font-bold text-gray-800">Rp {{ number_format($pinjaman->jumlah_pinjaman, 0, ',', '.') }}</p>
             </div>
             <div>
-                <p class="text-gray-400 text-xs">Bunga (Flat 1 Bulan)</p>
+                <p class="text-gray-400 text-xs">Bunga</p>
                 <p class="font-bold text-orange-500">Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}</p>
             </div>
             <div>
@@ -84,14 +84,6 @@
             <div>
                 <p class="text-gray-400 text-xs">Tenor</p>
                 <p class="font-semibold text-gray-700">{{ $pinjaman->tenor_bulan }} Hari</p>
-            </div>
-            <div>
-                <p class="text-gray-400 text-xs">Total Dibayar</p>
-                <p class="font-semibold text-gray-700">Rp {{ number_format($totalBayar, 0, ',', '.') }}</p>
-            </div>
-            <div>
-                <p class="text-gray-400 text-xs">Sisa Hutang</p>
-                <p class="font-semibold text-red-500">Rp {{ number_format($sisaHutang, 0, ',', '.') }}</p>
             </div>
             @else
             <div>
@@ -112,7 +104,6 @@
             </div>
             @endif
 
-            {{-- Denda berjalan --}}
             @if($adaDenda)
             <div class="col-span-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 <p class="text-xs text-red-400">Denda Keterlambatan</p>
@@ -126,9 +117,10 @@
 
         @if($isHarian)
         <div class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-xs text-orange-700 mb-3">
-            <i class="fa fa-sun mr-1"></i>
-            <strong>Pinjaman Harian:</strong> Bayar bunga saja untuk memperpanjang {{ $pinjaman->tenor_bulan }} hari,
-            atau bayar lunas (bunga + pokok) untuk menutup pinjaman.
+            <i class="fa fa-info-circle mr-1"></i>
+            <strong>Pinjaman Tenor {{ $pinjaman->tenor_bulan }} Hari:</strong>
+            Bayar bunga untuk memperpanjang jatuh tempo {{ $pinjaman->tenor_bulan }} hari ke depan.
+            Bayar lunas (pokok + bunga) untuk menutup pinjaman sepenuhnya.
         </div>
         @endif
 
@@ -179,7 +171,7 @@
         <div class="mb-6 pb-4 border-b border-gray-100">
             <h2 class="text-base font-semibold text-gray-800">
                 @if($isHarian)
-                    Form Pembayaran Pinjaman Harian
+                    Form Pembayaran Pinjaman
                 @else
                     Form Pembayaran Angsuran ke-{{ $angsuranKe }}
                 @endif
@@ -218,11 +210,12 @@
                     <option value="">-- Pilih Jenis --</option>
                     @if($isHarian)
                         <option value="bayar_bunga_saja" {{ old('jenis_pembayaran') == 'bayar_bunga_saja' ? 'selected' : '' }}>
-                            Bayar Bunga Saja — Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}
-                            (Perpanjang {{ $pinjaman->tenor_bulan }} hari)
+                            Bayar Bunga — Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}
+                            (Jatuh tempo mundur {{ $pinjaman->tenor_bulan }} hari)
                         </option>
                         <option value="bayar_lunas" {{ old('jenis_pembayaran') == 'bayar_lunas' ? 'selected' : '' }}>
-                            Bayar Lunas — Rp {{ number_format($sisaHutang, 0, ',', '.') }} (Bunga + Pokok)
+                            Bayar Lunas — Rp {{ number_format($pinjaman->jumlah_pinjaman + $pinjaman->total_bunga, 0, ',', '.') }}
+                            (Pokok + Bunga, pinjaman selesai)
                         </option>
                         <option value="tidak_bayar" {{ old('jenis_pembayaran') == 'tidak_bayar' ? 'selected' : '' }}>
                             Tidak Bayar (Catat Tunggakan)
@@ -282,8 +275,6 @@
                         Rp {{ number_format($infoDenda['denda'], 0, ',', '.') }}
                     </span>
                 </div>
-
-                {{-- Toggle Waive Denda --}}
                 <label class="flex items-center gap-3 cursor-pointer select-none group">
                     <div class="relative">
                         <input type="checkbox"
@@ -301,8 +292,6 @@
                         <p class="text-xs text-gray-400">Centang jika denda dibebaskan atas persetujuan</p>
                     </div>
                 </label>
-
-                {{-- Alasan waive --}}
                 <div id="alasanWaiveWrap" class="hidden mt-3">
                     <label class="block text-xs font-medium text-gray-600 mb-1">
                         Alasan Pembebasan Denda <span class="text-red-500">*</span>
@@ -407,7 +396,7 @@ function handleJenis(val) {
     const input = document.getElementById('jumlah_dibayar');
     if (isHarian) {
         if (val === 'bayar_bunga_saja') input.value = Math.round(bungaFlat);
-        if (val === 'bayar_lunas')      input.value = Math.round(sisaHutang);
+        if (val === 'bayar_lunas')      input.value = Math.round(pokok + bungaFlat);
         if (val === 'tidak_bayar')      input.value = 0;
     } else {
         if (val === 'cicilan_normal')   input.value = Math.round(cicilan);
@@ -424,7 +413,6 @@ function updateRingkasan(val) {
     const waiveEl    = document.getElementById('denda_diwaive');
     const isWaive    = waiveEl ? waiveEl.checked : false;
     const dendaAktif = isWaive ? 0 : dendaJumlah;
-    const totalBayar = bayar + dendaAktif;
 
     if (!val || bayar <= 0) {
         document.getElementById('ringkasan').classList.add('hidden');
@@ -437,27 +425,27 @@ function updateRingkasan(val) {
 
     if (isHarian) {
         if (val === 'bayar_bunga_saja') {
-            judul = '🔄 Bayar Bunga — Tenor Diperpanjang';
+            judul = '🔄 Bayar Bunga — Jatuh Tempo Diperpanjang';
             warna = 'bg-orange-50 border-orange-200 text-orange-700';
             html  = `
-                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bayar)}</span></div>
-                <div class="flex justify-between"><span>Pokok (tetap)</span><span>${fmt(pokok)}</span></div>
+                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
+                <div class="flex justify-between text-gray-400"><span>Pokok (tidak berkurang)</span><span>${fmt(pokok)}</span></div>
                 ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
                 ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
                 <div class="flex justify-between border-t border-orange-200 pt-2 mt-2 font-bold text-base">
-                    <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+                    <span>Total dibayar</span><span>${fmt(bungaFlat + dendaAktif)}</span>
                 </div>
                 <div class="flex justify-between text-xs mt-1 opacity-70"><span>Jatuh tempo mundur</span><span>+${tenorHari} hari</span></div>
             `;
         } else if (val === 'bayar_lunas') {
             judul = '✅ Bayar Lunas — Pinjaman Selesai';
             html  = `
-                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
                 <div class="flex justify-between"><span>Pokok</span><span>${fmt(pokok)}</span></div>
+                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
                 ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
                 ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
                 <div class="flex justify-between border-t border-emerald-200 pt-2 mt-2 font-bold text-base">
-                    <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+                    <span>Total dibayar</span><span>${fmt(pokok + bungaFlat + dendaAktif)}</span>
                 </div>
                 <div class="flex justify-between text-xs mt-1 opacity-70"><span>Status pinjaman</span><span>LUNAS 🎉</span></div>
             `;
@@ -473,7 +461,7 @@ function updateRingkasan(val) {
             ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
             ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
             <div class="flex justify-between border-t border-gray-200 pt-2 mt-2 font-bold text-base">
-                <span>Total yang harus dibayar</span><span>${fmt(totalBayar)}</span>
+                <span>Total yang harus dibayar</span><span>${fmt(bayar + dendaAktif)}</span>
             </div>
             <div class="flex justify-between text-xs mt-1 opacity-70"><span>Sisa hutang setelah bayar</span><span class="text-red-500">${fmt(sisa)}</span></div>
         `;
