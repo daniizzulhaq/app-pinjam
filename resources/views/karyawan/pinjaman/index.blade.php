@@ -1,6 +1,3 @@
-{{-- ============================================================ --}}
-{{-- FILE: resources/views/karyawan/pinjaman/index.blade.php    --}}
-{{-- ============================================================ --}}
 @extends('layouts.karyawan')
 @section('title', 'Data Pinjaman')
 @section('page-title', 'Data Pinjaman')
@@ -49,7 +46,7 @@
                     <th class="px-4 py-3 text-left">Nasabah</th>
                     <th class="px-4 py-3 text-right">Jumlah</th>
                     <th class="px-4 py-3 text-center">Tenor</th>
-                    <th class="px-4 py-3 text-right">Cicilan</th>
+                    <th class="px-4 py-3 text-center">Jatuh Tempo</th>
                     <th class="px-4 py-3 text-center">Status</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -92,9 +89,8 @@
                             </span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right text-gray-700">
-                        <div>Rp {{ number_format($p->cicilan_per_bulan, 0, ',', '.') }}</div>
-                        <div class="text-xs text-gray-400">/ {{ $tipe === 'harian' ? 'hari' : 'bulan' }}</div>
+                    <td class="px-4 py-3 text-center text-gray-600">
+                        {{ $p->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d M Y') : '-' }}
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize">

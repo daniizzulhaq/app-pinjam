@@ -205,11 +205,11 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         @php
             $stats = [
-                ['label'=>'Pinjaman Pokok',             'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'),   'icon'=>'fa-money-bill-wave',       'color'=>'text-gray-700'],
-                ['label'=>'Total + Bunga',              'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.'),    'icon'=>'fa-circle-dollar-to-slot',  'color'=>'text-blue-600'],
-                ['label'=>'Cicilan / '.ucfirst($satuan),'value'=>'Rp '.number_format($pinjaman->cicilan_per_bulan, 0, ',', '.'), 'icon'=>'fa-calendar-check',        'color'=>'text-emerald-600'],
-                ['label'=>'Tenor',                      'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan),                   'icon'=>'fa-hourglass-half',         'color'=>'text-amber-600'],
-            ];
+    ['label'=>'Pinjaman Pokok',  'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'),  'icon'=>'fa-money-bill-wave',      'color'=>'text-gray-700'],
+    ['label'=>'Total + Bunga',   'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.'),   'icon'=>'fa-circle-dollar-to-slot', 'color'=>'text-blue-600'],
+    ['label'=>'Jatuh Tempo',     'value'=>$pinjaman->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d M Y') : '-', 'icon'=>'fa-calendar-xmark', 'color'=>'text-red-500'],
+    ['label'=>'Tenor',           'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan),                  'icon'=>'fa-hourglass-half',        'color'=>'text-amber-600'],
+];
         @endphp
         @foreach($stats as $s)
         <div class="bg-white rounded-xl shadow p-4">

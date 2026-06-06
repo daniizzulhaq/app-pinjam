@@ -12,6 +12,7 @@ class NasabahController extends Controller
     public function index(Request $request)
     {
         $nasabah = Nasabah::where('user_id', auth()->id())
+            ->with(['pinjaman' => fn($q) => $q->where('status', 'aktif')->latest()])
             ->when($request->search, fn($q) =>
                 $q->where('nama_lengkap', 'like', '%'.$request->search.'%')
                   ->orWhere('no_ktp', 'like', '%'.$request->search.'%')
@@ -30,7 +31,7 @@ class NasabahController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'no_ktp'        => ['required', 'string', 'size:16', 'unique:nasabah,no_ktp'],
+            'no_ktp'        => ['required', 'string', 'max:20', 'unique:nasabah,no_ktp'],
             'nama_lengkap'  => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
             'tanggal_lahir' => ['required', 'date'],
@@ -56,9 +57,9 @@ class NasabahController extends Controller
         }
 
         $validated['user_id'] = auth()->id();
-        $nasabah = Nasabah::create($validated);
+        $newNasabah = Nasabah::create($validated);
 
-        return redirect()->route('karyawan.nasabah.show', $nasabah)
+        return redirect()->route('karyawan.nasabah.show', $newNasabah)
                          ->with('success', 'Data nasabah berhasil disimpan.');
     }
 
@@ -76,7 +77,7 @@ class NasabahController extends Controller
     public function update(Request $request, Nasabah $nasabah)
     {
         $validated = $request->validate([
-            'no_ktp'        => ['required', 'string', 'size:16', 'unique:nasabah,no_ktp,'.$nasabah->id],
+            'no_ktp'        => ['required', 'string', 'max:20', 'unique:nasabah,no_ktp,'.$nasabah->id],
             'nama_lengkap'  => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
             'tanggal_lahir' => ['required', 'date'],

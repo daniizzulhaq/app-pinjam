@@ -1,7 +1,7 @@
 @extends('layouts.karyawan')
 @section('title', 'Data Nasabah')
 @section('page-title', 'Data Nasabah Saya')
- 
+
 @section('content')
 <div class="py-4">
     <div class="flex items-center justify-between mb-4">
@@ -18,7 +18,7 @@
             <i class="fa fa-user-plus mr-1"></i> Tambah Nasabah
         </a>
     </div>
- 
+
     <div class="bg-white rounded-xl shadow overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
@@ -33,19 +33,33 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($nasabah as $n)
+                @php
+                    $wa = preg_replace('/[^0-9]/', '', $n->no_telepon);
+                    if (str_starts_with($wa, '0')) {
+                        $wa = '62' . substr($wa, 1);
+                    }
+
+                    $pinjamanAktif = $n->pinjaman->first();
+                    $pesanWa = '';
+                    if ($pinjamanAktif) {
+                        $jatuhTempo   = $pinjamanAktif->tanggal_jatuh_tempo
+                            ? \Carbon\Carbon::parse($pinjamanAktif->tanggal_jatuh_tempo)->format('d/m/Y')
+                            : '-';
+                        $totalTagihan = number_format($pinjamanAktif->total_pinjaman, 0, ',', '.');
+                        $pesanWa = urlencode(
+                            "Jangan Lupa JAPO tanggal : {$jatuhTempo}\n" .
+                            "Sebesar Rp. {$totalTagihan}\n" .
+                            "Transfer di Rek. BCA 8755194596 an. Rahmat M Dotulong."
+                        );
+                    }
+                @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500">{{ $loop->iteration }}</td>
                     <td class="px-4 py-3 font-mono text-xs">{{ $n->no_ktp }}</td>
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $n->nama_lengkap }}</td>
                     <td class="px-4 py-3 text-gray-600">
                         <span class="block">{{ $n->no_telepon }}</span>
-                        @php
-                            $wa = preg_replace('/[^0-9]/', '', $n->no_telepon);
-                            if (str_starts_with($wa, '0')) {
-                                $wa = '62' . substr($wa, 1);
-                            }
-                        @endphp
-                        <a href="https://wa.me/{{ $wa }}"
+                        <a href="https://wa.me/{{ $wa }}{{ $pesanWa ? '?text='.$pesanWa : '' }}"
                            target="_blank"
                            class="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 mt-0.5">
                             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
