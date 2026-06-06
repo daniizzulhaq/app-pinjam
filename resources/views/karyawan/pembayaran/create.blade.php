@@ -16,13 +16,15 @@
         $isHarian   = $pinjaman->tenor_tipe === 'harian';
         $totalBayar = $pinjaman->pembayaran->sum('jumlah_dibayar');
         $sisaHutang = $pinjaman->total_pinjaman - $totalBayar;
-        $persen     = $pinjaman->total_pinjaman > 0
-            ? min(100, round($totalBayar / $pinjaman->total_pinjaman * 100))
-            : 0;
         $profil     = \App\Models\ProfilAdmin::profil();
         $jatuhTempo = \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo);
         $hariSisa   = now()->startOfDay()->diffInDays($jatuhTempo->startOfDay(), false);
         $adaDenda   = $infoDenda['denda'] > 0;
+
+        // Hitung bunga baru jika bayar bunga (untuk info di form)
+        $bungaBaru         = $pinjaman->jumlah_pinjaman * ($pinjaman->bunga_persen / 100);
+        $totalPinjamanBaru = $pinjaman->jumlah_pinjaman + $bungaBaru;
+        $jatuhTempoMundur  = $jatuhTempo->copy()->addDays($pinjaman->tenor_bulan);
     @endphp
 
     {{-- Alert Denda --}}
@@ -65,7 +67,7 @@
                 <p class="font-bold text-gray-800">Rp {{ number_format($pinjaman->jumlah_pinjaman, 0, ',', '.') }}</p>
             </div>
             <div>
-                <p class="text-gray-400 text-xs">Bunga</p>
+                <p class="text-gray-400 text-xs">Bunga Periode Ini</p>
                 <p class="font-bold text-orange-500">Rp {{ number_format($pinjaman->total_bunga, 0, ',', '.') }}</p>
             </div>
             <div>
@@ -116,21 +118,14 @@
         </div>
 
         @if($isHarian)
-        <div class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-xs text-orange-700 mb-3">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-xs text-orange-700">
             <i class="fa fa-info-circle mr-1"></i>
             <strong>Pinjaman Tenor {{ $pinjaman->tenor_bulan }} Hari:</strong>
-            Bayar bunga untuk memperpanjang jatuh tempo {{ $pinjaman->tenor_bulan }} hari ke depan.
+            Bayar bunga untuk memperpanjang jatuh tempo {{ $pinjaman->tenor_bulan }} hari ke depan —
+            periode baru akan kena bunga + pokok lagi.
             Bayar lunas (pokok + bunga) untuk menutup pinjaman sepenuhnya.
         </div>
         @endif
-
-        <div class="flex justify-between text-xs text-gray-400 mb-1">
-            <span>Progress Pelunasan</span>
-            <span>{{ $persen }}%</span>
-        </div>
-        <div class="w-full bg-gray-100 rounded-full h-2">
-            <div class="bg-emerald-500 h-2 rounded-full transition-all" style="width: {{ $persen }}%"></div>
-        </div>
     </div>
 
     {{-- Rekening Pembayaran --}}
@@ -374,15 +369,19 @@
 </div>
 
 <script>
-const isHarian      = {{ $isHarian ? 'true' : 'false' }};
-const cicilan       = {{ $pinjaman->cicilan_per_bulan }};
-const sisaHutang    = {{ $sisaHutang }};
-const bungaFlat     = {{ $pinjaman->total_bunga }};
-const pokok         = {{ $pinjaman->jumlah_pinjaman }};
-const tenorHari     = {{ $pinjaman->tenor_bulan }};
-const bungaPerBulan = {{ $pinjaman->total_bunga / $pinjaman->tenor_bulan }};
-const dendaJumlah   = {{ $infoDenda['denda'] }};
-const dendaHari     = {{ $infoDenda['hari'] }};
+const isHarian        = {{ $isHarian ? 'true' : 'false' }};
+const cicilan         = {{ $pinjaman->cicilan_per_bulan }};
+const sisaHutang      = {{ $sisaHutang }};
+const bungaFlat       = {{ $pinjaman->total_bunga }};
+const pokok           = {{ $pinjaman->jumlah_pinjaman }};
+const tenorHari       = {{ $pinjaman->tenor_bulan }};
+const bungaPerBulan   = {{ $pinjaman->total_bunga / $pinjaman->tenor_bulan }};
+const dendaJumlah     = {{ $infoDenda['denda'] }};
+const dendaHari       = {{ $infoDenda['hari'] }};
+// Bunga periode baru setelah bayar bunga (dihitung ulang dari pokok)
+const bungaBaru       = {{ $bungaBaru }};
+const totalBaru       = {{ $totalPinjamanBaru }};
+const jatuhTempoMundur = '{{ $jatuhTempoMundur->translatedFormat("d F Y") }}';
 
 const fmt = v => 'Rp ' + Math.round(v).toLocaleString('id-ID');
 
@@ -428,14 +427,19 @@ function updateRingkasan(val) {
             judul = '🔄 Bayar Bunga — Jatuh Tempo Diperpanjang';
             warna = 'bg-orange-50 border-orange-200 text-orange-700';
             html  = `
-                <div class="flex justify-between"><span>Bunga</span><span>${fmt(bungaFlat)}</span></div>
-                <div class="flex justify-between text-gray-400"><span>Pokok (tidak berkurang)</span><span>${fmt(pokok)}</span></div>
+                <div class="flex justify-between"><span>Bunga periode ini</span><span>${fmt(bungaFlat)}</span></div>
+                <div class="flex justify-between text-gray-500"><span>Pokok (tetap, tidak berkurang)</span><span>${fmt(pokok)}</span></div>
                 ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}
                 ${isWaive ? `<div class="flex justify-between text-emerald-600"><span>Denda dibebaskan</span><span class="font-bold">✓ Waived</span></div>` : ''}
                 <div class="flex justify-between border-t border-orange-200 pt-2 mt-2 font-bold text-base">
-                    <span>Total dibayar</span><span>${fmt(bungaFlat + dendaAktif)}</span>
+                    <span>Total dibayar sekarang</span><span>${fmt(bungaFlat + dendaAktif)}</span>
                 </div>
-                <div class="flex justify-between text-xs mt-1 opacity-70"><span>Jatuh tempo mundur</span><span>+${tenorHari} hari</span></div>
+                <div class="mt-3 pt-2 border-t border-orange-100 text-xs space-y-1 text-orange-800">
+                    <p class="font-semibold">📅 Periode baru setelah ini:</p>
+                    <div class="flex justify-between"><span>Jatuh tempo baru</span><span class="font-medium">${jatuhTempoMundur}</span></div>
+                    <div class="flex justify-between"><span>Bunga periode baru</span><span class="font-medium">${fmt(bungaBaru)}</span></div>
+                    <div class="flex justify-between"><span>Total tagihan periode baru</span><span class="font-medium">${fmt(totalBaru)}</span></div>
+                </div>
             `;
         } else if (val === 'bayar_lunas') {
             judul = '✅ Bayar Lunas — Pinjaman Selesai';
@@ -456,6 +460,15 @@ function updateRingkasan(val) {
         }
     } else {
         const sisa = Math.max(0, sisaHutang - bayar);
+        if (val === 'bayar_bunga_saja') {
+            judul = '🔄 Bayar Bunga Saja';
+            warna = 'bg-orange-50 border-orange-200 text-orange-700';
+        } else if (val === 'bayar_lunas') {
+            judul = '✅ Bayar Lunas — Pinjaman Selesai';
+        } else if (val === 'tidak_bayar') {
+            judul = '⚠️ Catat Tunggakan';
+            warna = 'bg-red-50 border-red-200 text-red-700';
+        }
         html = `
             <div class="flex justify-between"><span>Jumlah Dibayar</span><span>${fmt(bayar)}</span></div>
             ${dendaAktif > 0 ? `<div class="flex justify-between text-red-600"><span>Denda (${dendaHari} hari × Rp 50.000)</span><span class="font-bold">${fmt(dendaAktif)}</span></div>` : ''}

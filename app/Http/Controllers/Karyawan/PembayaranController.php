@@ -106,7 +106,8 @@ class PembayaranController extends Controller
 
         // =============================================
         // HARIAN
-        // bayar_bunga_saja = hanya bayar bunga, pokok tidak berkurang, jatuh tempo mundur
+        // bayar_bunga_saja = bayar bunga periode ini, jatuh tempo mundur,
+        //                    bunga periode baru dihitung ulang dari pokok yang sama
         // bayar_lunas      = bayar pokok + bunga, pinjaman selesai
         // tidak_bayar      = catat tunggakan
         // =============================================
@@ -146,7 +147,7 @@ class PembayaranController extends Controller
                 $pokokDibayar = $pokokPerPeriode;
                 $bungaDibayar = $bungaPerPeriode;
                 $statusBayar  = $validated['jumlah_dibayar'] >= floor($pinjaman->cicilan_per_bulan)
-                    ? 'lunas' : 'sebagian';
+                    ? 'lunas' : 'cicilan';
             }
         }
 
@@ -183,14 +184,29 @@ class PembayaranController extends Controller
         // =============================================
         if ($pinjaman->tenor_tipe === 'harian') {
             if ($validated['jenis_pembayaran'] === 'bayar_lunas') {
+                // Pinjaman selesai
                 $pinjaman->update(['status' => 'lunas']);
+
             } elseif ($validated['jenis_pembayaran'] === 'bayar_bunga_saja') {
-                // Mundurkan jatuh tempo dari jatuh tempo sebelumnya + tenor hari
+                // Mundurkan jatuh tempo sesuai tenor hari
                 $jatuhTempoMundur = Carbon::parse($pinjaman->tanggal_jatuh_tempo)
                     ->addDays($pinjaman->tenor_bulan);
-                $pinjaman->update(['tanggal_jatuh_tempo' => $jatuhTempoMundur]);
+
+                // Hitung ulang bunga periode baru dari pokok yang sama
+                // (bunga = pokok × persentase bunga, sama seperti awal)
+                $bungaBaru        = $pinjaman->jumlah_pinjaman * ($pinjaman->bunga_persen / 100);
+                $totalPinjamanBaru = $pinjaman->jumlah_pinjaman + $bungaBaru;
+                $cicilanBaru      = $totalPinjamanBaru / $pinjaman->tenor_bulan;
+
+                $pinjaman->update([
+                    'tanggal_jatuh_tempo' => $jatuhTempoMundur,
+                    'total_bunga'         => $bungaBaru,
+                    'total_pinjaman'      => $totalPinjamanBaru,
+                    'cicilan_per_bulan'   => $cicilanBaru,
+                ]);
             }
             // tidak_bayar: tidak ada perubahan
+
         } else {
             if ($validated['jenis_pembayaran'] === 'bayar_lunas') {
                 $pinjaman->update(['status' => 'lunas']);

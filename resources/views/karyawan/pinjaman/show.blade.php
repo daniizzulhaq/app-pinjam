@@ -13,10 +13,12 @@
     $satuan     = $isHarian ? 'hari' : 'bulan';
 
     $totalBayar = $pinjaman->pembayaran->sum('jumlah_dibayar');
-    $sisaHutang = $pinjaman->total_pinjaman - $totalBayar;
-    $persen     = $pinjaman->total_pinjaman > 0
-        ? min(100, round($totalBayar / $pinjaman->total_pinjaman * 100))
-        : 0;
+    // Untuk harian: sisa = pokok (tidak berkurang saat bayar bunga)
+    // Untuk bulanan: sisa = total_pinjaman - total_dibayar
+    $sisaHutang = $isHarian
+        ? $pinjaman->jumlah_pinjaman
+        : $pinjaman->total_pinjaman - $totalBayar;
+
     $angsuranKe = $pinjaman->pembayaran->count() + 1;
     $sudahLunas = $pinjaman->status === 'lunas';
 
@@ -70,24 +72,6 @@
                 </a>
             @endif
         </div>
-
-        @if(in_array($pinjaman->status, ['aktif', 'lunas']))
-        <div class="mt-5">
-            <div class="flex justify-between text-xs text-gray-400 mb-1.5">
-                <span>Progress Pelunasan</span>
-                <span class="font-semibold text-gray-600">{{ $persen }}%</span>
-            </div>
-            <div class="w-full bg-gray-100 rounded-full h-3">
-                <div class="h-3 rounded-full transition-all duration-700
-                    {{ $persen >= 100 ? 'bg-emerald-500' : ($persen >= 50 ? 'bg-blue-500' : 'bg-amber-400') }}"
-                    style="width: {{ $persen }}%"></div>
-            </div>
-            <div class="flex justify-between text-xs mt-1.5">
-                <span class="text-emerald-600 font-medium">Terbayar: Rp {{ number_format($totalBayar, 0, ',', '.') }}</span>
-                <span class="text-red-500 font-medium">Sisa: Rp {{ number_format($sisaHutang, 0, ',', '.') }}</span>
-            </div>
-        </div>
-        @endif
     </div>
 
     {{-- ============================================================ --}}
@@ -204,12 +188,17 @@
     {{-- Stats --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         @php
+            // Jatuh tempo diambil langsung dari DB (untuk harian bisa berubah setelah perpanjang)
+            $jatuhTempoDisplay = $pinjaman->tanggal_jatuh_tempo
+                ? \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d M Y')
+                : '-';
+
             $stats = [
-    ['label'=>'Pinjaman Pokok',  'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'),  'icon'=>'fa-money-bill-wave',      'color'=>'text-gray-700'],
-    ['label'=>'Total + Bunga',   'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.'),   'icon'=>'fa-circle-dollar-to-slot', 'color'=>'text-blue-600'],
-    ['label'=>'Jatuh Tempo',     'value'=>$pinjaman->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->format('d M Y') : '-', 'icon'=>'fa-calendar-xmark', 'color'=>'text-red-500'],
-    ['label'=>'Tenor',           'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan),                  'icon'=>'fa-hourglass-half',        'color'=>'text-amber-600'],
-];
+                ['label' => 'Pinjaman Pokok',  'value' => 'Rp ' . number_format($pinjaman->jumlah_pinjaman, 0, ',', '.'), 'icon' => 'fa-money-bill-wave',       'color' => 'text-gray-700'],
+                ['label' => 'Total + Bunga',   'value' => 'Rp ' . number_format($pinjaman->total_pinjaman, 0, ',', '.'),  'icon' => 'fa-circle-dollar-to-slot',  'color' => 'text-blue-600'],
+                ['label' => 'Jatuh Tempo',     'value' => $jatuhTempoDisplay,                                              'icon' => 'fa-calendar-xmark',         'color' => 'text-red-500'],
+                ['label' => 'Tenor',           'value' => $pinjaman->tenor_bulan . ' ' . ucfirst($satuan),                'icon' => 'fa-hourglass-half',          'color' => 'text-amber-600'],
+            ];
         @endphp
         @foreach($stats as $s)
         <div class="bg-white rounded-xl shadow p-4">
@@ -274,9 +263,18 @@
                             @foreach($pinjaman->pembayaran->sortByDesc('tanggal_bayar') as $p)
                             <tr class="hover:bg-gray-50/60 transition">
                                 <td class="px-5 py-3.5">
-                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full
-                                        {{ $p->status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}
-                                        text-xs font-bold">{{ $loop->iteration }}</span>
+                                    @php
+                                        $dotClass = match($p->status) {
+                                            'lunas'       => 'bg-emerald-100 text-emerald-700',
+                                            'bunga'       => 'bg-orange-100 text-orange-700',
+                                            'cicilan'     => 'bg-blue-100 text-blue-700',
+                                            'tidak_bayar' => 'bg-red-100 text-red-500',
+                                            default       => 'bg-amber-100 text-amber-700',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full {{ $dotClass }} text-xs font-bold">
+                                        {{ $loop->iteration }}
+                                    </span>
                                 </td>
                                 <td class="px-5 py-3.5 text-gray-700">
                                     {{ \Carbon\Carbon::parse($p->tanggal_bayar)->format('d M Y') }}
@@ -287,16 +285,23 @@
                                 <td class="px-5 py-3.5">
                                     @php
                                         $jenisMap = [
-                                            'cicilan_normal'   => ['label'=>'Cicilan Normal','class'=>'bg-blue-50 text-blue-700'],
-                                            'bayar_lunas'      => ['label'=>'Bayar Lunas',   'class'=>'bg-emerald-50 text-emerald-700'],
-                                            'bayar_bunga_saja' => ['label'=>'Bunga Saja',    'class'=>'bg-purple-50 text-purple-700'],
-                                            'tidak_bayar'      => ['label'=>'Tidak Bayar',   'class'=>'bg-red-50 text-red-600'],
+                                            'cicilan_normal'   => ['label' => 'Cicilan Normal',       'class' => 'bg-blue-50 text-blue-700'],
+                                            'bayar_lunas'      => ['label' => 'Bayar Lunas',           'class' => 'bg-emerald-50 text-emerald-700'],
+                                            'bayar_bunga_saja' => ['label' => 'Bunga — Perpanjang',    'class' => 'bg-purple-50 text-purple-700'],
+                                            'tidak_bayar'      => ['label' => 'Tidak Bayar',           'class' => 'bg-red-50 text-red-600'],
                                         ];
-                                        $jenis = $jenisMap[$p->jenis_pembayaran] ?? ['label'=>$p->jenis_pembayaran,'class'=>'bg-gray-100 text-gray-600'];
+                                        $jenis = $jenisMap[$p->jenis_pembayaran] ?? ['label' => $p->jenis_pembayaran, 'class' => 'bg-gray-100 text-gray-600'];
                                     @endphp
                                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium {{ $jenis['class'] }}">
                                         {{ $jenis['label'] }}
                                     </span>
+                                    {{-- Untuk harian bayar bunga: tampilkan info perpanjang --}}
+                                    @if($isHarian && $p->jenis_pembayaran === 'bayar_bunga_saja')
+                                        <span class="block text-xs text-orange-400 mt-0.5">
+                                            <i class="fa fa-calendar-plus"></i>
+                                            Jatuh tempo diperpanjang {{ $pinjaman->tenor_bulan }} hari
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-5 py-3.5 text-right font-semibold {{ $p->jenis_pembayaran === 'tidak_bayar' ? 'text-red-500' : 'text-gray-800' }}">
                                     Rp {{ number_format($p->jumlah_dibayar, 0, ',', '.') }}
@@ -304,16 +309,26 @@
                                 <td class="px-5 py-3.5 text-right">
                                     @if($p->denda > 0)
                                         <span class="text-red-500 font-medium">Rp {{ number_format($p->denda, 0, ',', '.') }}</span>
+                                        @if($p->denda_diwaive)
+                                            <span class="block text-xs text-emerald-500">✓ Dibebaskan</span>
+                                        @endif
                                     @else
                                         <span class="text-gray-300">—</span>
                                     @endif
                                 </td>
                                 <td class="px-5 py-3.5">
-                                    @if($p->status === 'lunas')
-                                        <span class="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">Lunas</span>
-                                    @else
-                                        <span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">Sebagian</span>
-                                    @endif
+                                    @php
+                                        $statusBadge = match($p->status) {
+                                            'lunas'       => ['label' => 'Lunas',         'class' => 'bg-emerald-50 text-emerald-700'],
+                                            'bunga'       => ['label' => 'Bayar Bunga',   'class' => 'bg-orange-50 text-orange-700'],
+                                            'cicilan'     => ['label' => 'Cicilan',       'class' => 'bg-blue-50 text-blue-700'],
+                                            'tidak_bayar' => ['label' => 'Tunggakan',     'class' => 'bg-red-50 text-red-600'],
+                                            default       => ['label' => 'Sebagian',      'class' => 'bg-amber-50 text-amber-700'],
+                                        };
+                                    @endphp
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $statusBadge['class'] }}">
+                                        {{ $statusBadge['label'] }}
+                                    </span>
                                 </td>
                                 <td class="px-5 py-3.5">
                                     <a href="{{ route('karyawan.pembayaran.invoice', [$pinjaman, $p]) }}"
@@ -365,11 +380,20 @@
             {{-- Notifikasi Jatuh Tempo --}}
             @if(!$sudahLunas && $pinjaman->status === 'aktif')
             @php
-                $start           = \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->startOfDay();
-                $jatuhTempoAkhir = $isHarian
-                    ? $start->copy()->addDays($pinjaman->tenor_bulan)
-                    : $start->copy()->addMonths($pinjaman->tenor_bulan);
-                $hariSisa        = (int) now()->startOfDay()->diffInDays($jatuhTempoAkhir, false);
+                // Untuk harian: ambil tanggal_jatuh_tempo langsung dari DB
+                // (sudah diupdate controller saat bayar_bunga_saja / perpanjang)
+                // Untuk bulanan: sama, tanggal_jatuh_tempo dari DB
+                $jatuhTempoAkhir = \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo);
+                $hariSisa        = (int) now()->startOfDay()->diffInDays($jatuhTempoAkhir->startOfDay(), false);
+
+                // Tagihan yang relevan ditampilkan:
+                // Harian  → pokok + bunga periode ini (bukan sisa akumulasi)
+                // Bulanan → sisa hutang (total - dibayar)
+                $sisaTagihan = $isHarian
+                    ? $pinjaman->jumlah_pinjaman + $pinjaman->total_bunga
+                    : $sisaHutang;
+
+                $tanggalMulai = \Carbon\Carbon::parse($pinjaman->tanggal_mulai);
             @endphp
             <div class="mt-4 border rounded-xl p-4 flex items-start gap-3
                 {{ $hariSisa < 0 ? 'bg-red-50 border-red-200' : ($hariSisa <= 3 ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200') }}">
@@ -377,23 +401,37 @@
                     {{ $hariSisa < 0 ? 'bg-red-100' : ($hariSisa <= 3 ? 'bg-amber-100' : 'bg-blue-100') }}">
                     <i class="fa fa-bell {{ $hariSisa < 0 ? 'text-red-600' : ($hariSisa <= 3 ? 'text-amber-600' : 'text-blue-600') }}"></i>
                 </div>
-                <div>
+                <div class="flex-1">
                     <p class="font-semibold {{ $hariSisa < 0 ? 'text-red-800' : ($hariSisa <= 3 ? 'text-amber-800' : 'text-blue-800') }}">
                         Jatuh Tempo: {{ $jatuhTempoAkhir->translatedFormat('d F Y') }}
                     </p>
                     <p class="text-sm mt-0.5 {{ $hariSisa < 0 ? 'text-red-600' : ($hariSisa <= 3 ? 'text-amber-600' : 'text-blue-600') }}">
                         @if($hariSisa > 0)
-                            Sisa <strong>{{ $hariSisa }} hari</strong> untuk melunasi
-                            <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+                            Sisa <strong>{{ $hariSisa }} hari</strong> —
+                            @if($isHarian)
+                                Tagihan periode ini: <strong>Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</strong>
+                                <span class="text-xs opacity-75">(pokok + bunga)</span>
+                            @else
+                                Lunasi <strong>Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</strong>
+                            @endif
                         @elseif($hariSisa == 0)
                             <span class="font-semibold">Hari ini adalah hari terakhir pembayaran!</span>
-                            Sisa: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+                            Tagihan: <strong>Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</strong>
                         @else
-    Sisa hutang: <strong>Rp {{ number_format($sisaHutang, 0, ',', '.') }}</strong>
+                            @if($isHarian)
+                                <span class="font-semibold">Terlambat {{ abs($hariSisa) }} hari!</span>
+                                Tagihan: <strong>Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</strong>
+                                + denda keterlambatan
+                            @else
+                                Sisa hutang: <strong>Rp {{ number_format($sisaTagihan, 0, ',', '.') }}</strong>
+                            @endif
                         @endif
                     </p>
                     <p class="text-xs text-gray-400 mt-1">
-                        Mulai: {{ $start->translatedFormat('d F Y') }} &bull; Tenor: {{ $pinjaman->tenor_bulan }} {{ $satuan }}
+                        Mulai: {{ $tanggalMulai->translatedFormat('d F Y') }} &bull; Tenor: {{ $pinjaman->tenor_bulan }} {{ $satuan }}
+                        @if($isHarian)
+                            &bull; <span class="text-orange-400">Jatuh tempo dapat berubah jika perpanjang bunga</span>
+                        @endif
                     </p>
                 </div>
             </div>
@@ -406,21 +444,24 @@
                 <h3 class="font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">📋 Informasi Lengkap Pinjaman</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                     @php
-                        $tanggalSelesai = $isHarian
-                            ? \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->addDays($pinjaman->tenor_bulan)
-                            : \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->addMonths($pinjaman->tenor_bulan);
+                        // Jatuh tempo diambil dari DB (dinamis untuk harian)
+                        $tanggalJatuhTempo = \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo);
+
                         $fields = [
-                            ['label'=>'Nama Nasabah',     'value'=>$pinjaman->nasabah->nama_lengkap],
-                            ['label'=>'No. Pinjaman',     'value'=>$pinjaman->no_pinjaman, 'mono'=>true],
-                            ['label'=>'Jumlah Pinjaman',  'value'=>'Rp '.number_format($pinjaman->jumlah_pinjaman, 0, ',', '.')],
-                            ['label'=>'Total Bunga',      'value'=>'Rp '.number_format($pinjaman->total_bunga, 0, ',', '.')],
-                            ['label'=>'Total Pinjaman',   'value'=>'Rp '.number_format($pinjaman->total_pinjaman, 0, ',', '.')],
-                            ['label'=>'Tenor',            'value'=>$pinjaman->tenor_bulan.' '.ucfirst($satuan).' ('.ucfirst($tipe).')'],
-                            ['label'=>'Suku Bunga',       'value'=>($pinjaman->bunga_persen ?? '-').'% / bulan'],
-                            ['label'=>'Tanggal Mulai',    'value'=>\Carbon\Carbon::parse($pinjaman->tanggal_mulai)->translatedFormat('d F Y')],
-                            ['label'=>'Jatuh Tempo',      'value'=>$tanggalSelesai->translatedFormat('d F Y')],
-                            ['label'=>'Status',           'value'=>$badge['label']],
-                            ['label'=>'Catatan Pengajuan','value'=>$pinjaman->catatan_pengajuan ?? '-'],
+                            ['label' => 'Nama Nasabah',     'value' => $pinjaman->nasabah->nama_lengkap],
+                            ['label' => 'No. Pinjaman',     'value' => $pinjaman->no_pinjaman, 'mono' => true],
+                            ['label' => 'Jumlah Pinjaman',  'value' => 'Rp ' . number_format($pinjaman->jumlah_pinjaman, 0, ',', '.')],
+                            ['label' => 'Total Bunga' . ($isHarian ? ' (Periode Ini)' : ''),
+                                        'value' => 'Rp ' . number_format($pinjaman->total_bunga, 0, ',', '.')],
+                            ['label' => 'Total Pinjaman' . ($isHarian ? ' (Periode Ini)' : ''),
+                                        'value' => 'Rp ' . number_format($pinjaman->total_pinjaman, 0, ',', '.')],
+                            ['label' => 'Tenor',            'value' => $pinjaman->tenor_bulan . ' ' . ucfirst($satuan) . ' (' . ucfirst($tipe) . ')'],
+                            ['label' => 'Suku Bunga',       'value' => ($pinjaman->bunga_persen ?? '-') . '% / bulan'],
+                            ['label' => 'Tanggal Mulai',    'value' => \Carbon\Carbon::parse($pinjaman->tanggal_mulai)->translatedFormat('d F Y')],
+                            ['label' => 'Jatuh Tempo' . ($isHarian ? ' (Periode Ini)' : ''),
+                                        'value' => $tanggalJatuhTempo->translatedFormat('d F Y')],
+                            ['label' => 'Status',           'value' => $badge['label']],
+                            ['label' => 'Catatan Pengajuan','value' => $pinjaman->catatan_pengajuan ?? '-'],
                         ];
                     @endphp
                     @foreach($fields as $f)
@@ -434,6 +475,18 @@
                     </div>
                     @endforeach
                 </div>
+
+                {{-- Info khusus pinjaman harian --}}
+                @if($isHarian)
+                <div class="mt-6 pt-4 border-t border-gray-100 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-xs text-orange-700">
+                    <p class="font-semibold mb-1"><i class="fa fa-info-circle mr-1"></i> Catatan Pinjaman Harian</p>
+                    <ul class="space-y-1 list-disc list-inside text-orange-600">
+                        <li>Bayar bunga = perpanjang jatuh tempo {{ $pinjaman->tenor_bulan }} hari ke depan. Bunga periode baru dihitung ulang dari pokok yang sama.</li>
+                        <li>Pokok pinjaman <strong>tidak berkurang</strong> selama masih aktif (bayar bunga).</li>
+                        <li>Bayar lunas = bayar pokok + bunga periode ini, pinjaman selesai.</li>
+                    </ul>
+                </div>
+                @endif
             </div>
         </div>
 
