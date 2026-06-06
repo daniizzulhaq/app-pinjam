@@ -89,11 +89,12 @@ class Pinjaman extends Model
         return $query->where('status', 'aktif');
     }
 
-    public function scopeJatuhTempo($query)
-    {
-        return $query->where('status', 'aktif')
-                     ->whereDate('tanggal_jatuh_tempo', '<=', now());
-    }
+  public function scopeJatuhTempo($query)
+{
+    return $query->where('status', 'aktif')
+                 ->whereDate('tanggal_jatuh_tempo', '>=', today())
+                 ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(30));
+}
 
     // =====================================================
     // ACCESSOR
