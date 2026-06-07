@@ -12,11 +12,11 @@
     @endif
 
     {{-- FILTER & HEADER --}}
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
         <form method="GET" class="flex gap-2">
             <select name="status"
                     onchange="this.form.submit()"
-                    class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 flex-1 sm:flex-none">
                 <option value="">Semua Status</option>
                 <option value="menunggu_approval" {{ request('status') == 'menunggu_approval' ? 'selected' : '' }}>Menunggu Approval</option>
                 <option value="aktif"             {{ request('status') == 'aktif'             ? 'selected' : '' }}>Aktif</option>
@@ -25,19 +25,19 @@
             </select>
             @if(request('status'))
             <a href="{{ route('karyawan.pinjaman.index') }}"
-               class="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm text-gray-500 transition">
+               class="bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm text-gray-500 transition flex-shrink-0">
                 <i class="fa fa-times"></i>
             </a>
             @endif
         </form>
         <a href="{{ route('karyawan.pinjaman.create') }}"
-           class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+           class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition text-center flex-shrink-0">
             <i class="fa fa-plus mr-1"></i> Ajukan Pinjaman
         </a>
     </div>
 
-    {{-- TABLE --}}
-    <div class="bg-white rounded-xl shadow overflow-hidden">
+    {{-- Desktop Table --}}
+    <div class="bg-white rounded-xl shadow overflow-hidden hidden md:block">
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
                 <tr>
@@ -60,7 +60,6 @@
                         'lunas'             => 'bg-blue-100 text-blue-700',
                         'ditolak'           => 'bg-red-100 text-red-700',
                     ][$p->status] ?? 'bg-gray-100 text-gray-600';
-
                     $tipe   = $p->tenor_tipe ?? 'bulanan';
                     $satuan = $tipe === 'harian' ? 'hr' : 'bln';
                 @endphp
@@ -126,12 +125,94 @@
                 @endforelse
             </tbody>
         </table>
-        <div class="px-4 py-3 border-t flex items-center justify-between text-sm text-gray-500">
+        <div class="px-4 py-3 border-t flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
             @if($pinjaman->total() > 0)
             <span>Menampilkan {{ $pinjaman->firstItem() }}–{{ $pinjaman->lastItem() }} dari {{ $pinjaman->total() }} pinjaman</span>
             @endif
             {{ $pinjaman->withQueryString()->links() }}
         </div>
+    </div>
+
+    {{-- Mobile Cards --}}
+    <div class="md:hidden space-y-3">
+        @forelse($pinjaman as $p)
+        @php
+            $badge = [
+                'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
+                'aktif'             => 'bg-green-100 text-green-700',
+                'lunas'             => 'bg-blue-100 text-blue-700',
+                'ditolak'           => 'bg-red-100 text-red-700',
+            ][$p->status] ?? 'bg-gray-100 text-gray-600';
+            $tipe   = $p->tenor_tipe ?? 'bulanan';
+            $satuan = $tipe === 'harian' ? 'hr' : 'bln';
+        @endphp
+        <div class="bg-white rounded-xl shadow p-4">
+            {{-- Row 1: No pinjaman + status --}}
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <div>
+                    <span class="font-mono text-xs text-blue-600 block">{{ $p->no_pinjaman }}</span>
+                    <span class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($p->tanggal_pengajuan)->format('d M Y') }}</span>
+                </div>
+                <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize flex-shrink-0">
+                    {{ str_replace('_', ' ', $p->status) }}
+                </span>
+            </div>
+
+            {{-- Row 2: Nasabah --}}
+            <p class="font-medium text-gray-800 text-sm">{{ $p->nasabah->nama_lengkap ?? '-' }}</p>
+            <p class="text-xs text-gray-400 font-mono mb-2">{{ $p->nasabah->no_ktp ?? '' }}</p>
+
+            {{-- Row 3: Detail angka --}}
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
+                <span>
+                    <i class="fa fa-money-bill-wave mr-1 text-gray-400"></i>
+                    <span class="font-medium text-gray-700 font-mono">Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}</span>
+                </span>
+                <span>
+                    <i class="fa fa-clock mr-1 text-gray-400"></i>
+                    {{ $p->tenor_bulan }} {{ $satuan }}
+                    @if($tipe === 'harian')
+                        <span class="text-orange-500 ml-0.5">· Harian</span>
+                    @endif
+                </span>
+                <span>
+                    <i class="fa fa-calendar mr-1 text-gray-400"></i>
+                    {{ $p->tanggal_jatuh_tempo ? \Carbon\Carbon::parse($p->tanggal_jatuh_tempo)->format('d M Y') : '-' }}
+                </span>
+            </div>
+
+            {{-- Row 4: Aksi --}}
+            <div class="flex gap-2">
+                <a href="{{ route('karyawan.pinjaman.show', $p) }}"
+                   class="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3 py-1.5 rounded transition">
+                    <i class="fa fa-eye mr-1"></i>Detail
+                </a>
+                @if($p->status === 'aktif')
+                <a href="{{ route('karyawan.pembayaran.create', $p) }}"
+                   class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded transition">
+                    <i class="fa fa-money-bill mr-1"></i>Bayar
+                </a>
+                @endif
+            </div>
+        </div>
+        @empty
+        <div class="bg-white rounded-xl shadow text-center py-12 text-gray-400">
+            <i class="fa fa-file-invoice text-4xl mb-2 block"></i>
+            Belum ada data pinjaman.
+            <div class="mt-2">
+                <a href="{{ route('karyawan.pinjaman.create') }}" class="text-emerald-600 hover:underline text-sm">
+                    Ajukan pinjaman sekarang →
+                </a>
+            </div>
+        </div>
+        @endforelse
+
+        @if($pinjaman->total() > 0)
+        <div class="bg-white rounded-xl shadow px-4 py-3 text-xs text-gray-500">
+            <div class="mb-2">Menampilkan {{ $pinjaman->firstItem() }}–{{ $pinjaman->lastItem() }} dari {{ $pinjaman->total() }} pinjaman</div>
+            {{ $pinjaman->withQueryString()->links() }}
+        </div>
+        @endif
     </div>
 
 </div>

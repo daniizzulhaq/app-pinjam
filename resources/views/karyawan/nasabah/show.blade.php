@@ -19,7 +19,7 @@
         <div class="lg:col-span-1 space-y-4">
 
             {{-- Data Pribadi --}}
-            <div class="bg-white rounded-xl shadow p-6">
+            <div class="bg-white rounded-xl shadow p-5 md:p-6">
                 <div class="mb-4 pb-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-800">👤 Data Nasabah</h3>
                     <a href="{{ route('karyawan.nasabah.edit', $nasabah) }}"
@@ -46,9 +46,7 @@
                     </div>
                     <div>
                         <dt class="text-gray-400 text-xs">Jenis Kelamin</dt>
-                        <dd class="mt-0.5 text-gray-700">
-                            {{ $nasabah->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}
-                        </dd>
+                        <dd class="mt-0.5 text-gray-700">{{ $nasabah->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</dd>
                     </div>
                     <div>
                         <dt class="text-gray-400 text-xs">No. HP</dt>
@@ -67,9 +65,7 @@
 
             {{-- Foto Dokumen --}}
             <div class="bg-white rounded-xl shadow overflow-hidden">
-
-                {{-- Header --}}
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="px-4 md:px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <i class="fa fa-files-o text-gray-400"></i>
                         <div>
@@ -86,21 +82,17 @@
                     @endif
                 </div>
 
-                {{-- Grid Foto --}}
                 <div class="grid grid-cols-2 divide-x divide-gray-100">
-
                     {{-- Foto Nasabah --}}
-                    <div class="p-4">
+                    <div class="p-3 md:p-4">
                         <div class="flex items-center gap-1.5 mb-3">
                             <i class="fa fa-user-circle text-gray-400 text-xs"></i>
                             <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Foto Nasabah</span>
                         </div>
-
                         @if($nasabah->foto_nasabah)
                             <div class="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 aspect-[4/3]"
                                  onclick="openModal('{{ asset('storage/' . $nasabah->foto_nasabah) }}', 'Foto Nasabah')">
-                                <img src="{{ asset('storage/' . $nasabah->foto_nasabah) }}"
-                                     alt="Foto Nasabah"
+                                <img src="{{ asset('storage/' . $nasabah->foto_nasabah) }}" alt="Foto Nasabah"
                                      class="w-full h-full object-cover transition duration-200 group-hover:scale-105">
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition flex items-end">
                                     <div class="w-full px-3 py-2.5 flex items-center justify-between translate-y-full group-hover:translate-y-0 transition duration-200">
@@ -109,8 +101,7 @@
                                             <span class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-xs px-2.5 py-1 rounded flex items-center gap-1">
                                                 <i class="fa fa-search-plus"></i> Lihat
                                             </span>
-                                            <a href="{{ asset('storage/' . $nasabah->foto_nasabah) }}"
-                                               download target="_blank"
+                                            <a href="{{ asset('storage/' . $nasabah->foto_nasabah) }}" download target="_blank"
                                                onclick="event.stopPropagation()"
                                                class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-xs px-2 py-1 rounded flex items-center">
                                                 <i class="fa fa-download"></i>
@@ -136,17 +127,15 @@
                     </div>
 
                     {{-- Foto KTP --}}
-                    <div class="p-4">
+                    <div class="p-3 md:p-4">
                         <div class="flex items-center gap-1.5 mb-3">
                             <i class="fa fa-id-card text-gray-400 text-xs"></i>
                             <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Foto KTP</span>
                         </div>
-
                         @if($nasabah->foto_ktp)
                             <div class="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 aspect-[4/3]"
                                  onclick="openModal('{{ asset('storage/' . $nasabah->foto_ktp) }}', 'Foto KTP')">
-                                <img src="{{ asset('storage/' . $nasabah->foto_ktp) }}"
-                                     alt="Foto KTP"
+                                <img src="{{ asset('storage/' . $nasabah->foto_ktp) }}" alt="Foto KTP"
                                      class="w-full h-full object-cover transition duration-200 group-hover:scale-105">
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition flex items-end">
                                     <div class="w-full px-3 py-2.5 flex items-center justify-between translate-y-full group-hover:translate-y-0 transition duration-200">
@@ -155,8 +144,7 @@
                                             <span class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-xs px-2.5 py-1 rounded flex items-center gap-1">
                                                 <i class="fa fa-search-plus"></i> Lihat
                                             </span>
-                                            <a href="{{ asset('storage/' . $nasabah->foto_ktp) }}"
-                                               download target="_blank"
+                                            <a href="{{ asset('storage/' . $nasabah->foto_ktp) }}" download target="_blank"
                                                onclick="event.stopPropagation()"
                                                class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-xs px-2 py-1 rounded flex items-center">
                                                 <i class="fa fa-download"></i>
@@ -180,23 +168,20 @@
                             </div>
                         @endif
                     </div>
-
                 </div>
 
-                {{-- Footer --}}
-                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-info-circle text-gray-400 text-xs"></i>
-                        <span class="text-xs text-gray-400">Klik gambar untuk memperbesar &bull; Format: JPG, PNG</span>
+                <div class="px-4 md:px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="fa fa-info-circle text-gray-400 text-xs flex-shrink-0"></i>
+                        <span class="text-xs text-gray-400 truncate">Klik gambar untuk memperbesar &bull; JPG, PNG</span>
                     </div>
                     @if(!$nasabah->foto_nasabah || !$nasabah->foto_ktp)
                     <a href="{{ route('karyawan.nasabah.edit', $nasabah) }}"
-                       class="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition">
+                       class="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition flex-shrink-0">
                         <i class="fa fa-upload"></i> Upload
                     </a>
                     @endif
                 </div>
-
             </div>
 
             {{-- Tombol Ajukan Pinjaman --}}
@@ -211,27 +196,27 @@
 
             {{-- Statistik --}}
             <div class="grid grid-cols-3 gap-3">
-                <div class="bg-white rounded-xl shadow p-4 text-center">
-                    <p class="text-2xl font-bold text-gray-800">{{ $nasabah->pinjaman->count() }}</p>
+                <div class="bg-white rounded-xl shadow p-3 md:p-4 text-center">
+                    <p class="text-xl md:text-2xl font-bold text-gray-800">{{ $nasabah->pinjaman->count() }}</p>
                     <p class="text-xs text-gray-500 mt-1">Total Pinjaman</p>
                 </div>
-                <div class="bg-white rounded-xl shadow p-4 text-center">
-                    <p class="text-2xl font-bold text-emerald-600">
+                <div class="bg-white rounded-xl shadow p-3 md:p-4 text-center">
+                    <p class="text-xl md:text-2xl font-bold text-emerald-600">
                         {{ $nasabah->pinjaman->where('status', 'aktif')->count() }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">Aktif</p>
                 </div>
-                <div class="bg-white rounded-xl shadow p-4 text-center">
-                    <p class="text-2xl font-bold text-blue-600">
+                <div class="bg-white rounded-xl shadow p-3 md:p-4 text-center">
+                    <p class="text-xl md:text-2xl font-bold text-blue-600">
                         {{ $nasabah->pinjaman->where('status', 'lunas')->count() }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">Lunas</p>
                 </div>
             </div>
 
-            {{-- Tabel Riwayat Pinjaman --}}
+            {{-- Riwayat Pinjaman --}}
             <div class="bg-white rounded-xl shadow overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100">
+                <div class="px-4 md:px-5 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-800">📋 Riwayat Pinjaman</h3>
                 </div>
 
@@ -247,58 +232,104 @@
                         </div>
                     </div>
                 @else
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
-                        <tr>
-                            <th class="px-4 py-3 text-left">No. Pinjaman</th>
-                            <th class="px-4 py-3 text-right">Jumlah</th>
-                            <th class="px-4 py-3 text-center">Tenor</th>
-                            <th class="px-4 py-3 text-center">Status</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach($nasabah->pinjaman as $p)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-3">
-                                <span class="font-mono text-xs text-blue-600">{{ $p->no_pinjaman }}</span>
-                                <div class="text-xs text-gray-400 mt-0.5">
-                                    {{ \Carbon\Carbon::parse($p->tanggal_pengajuan)->format('d M Y') }}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-right font-medium text-gray-800">
-                                Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}
-                            </td>
-                            <td class="px-4 py-3 text-center text-gray-600">{{ $p->tenor_bulan }} bln</td>
-                            <td class="px-4 py-3 text-center">
-                                @php
-                                    $badge = [
-                                        'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
-                                        'aktif'             => 'bg-green-100 text-green-700',
-                                        'lunas'             => 'bg-blue-100 text-blue-700',
-                                        'ditolak'           => 'bg-red-100 text-red-700',
-                                    ][$p->status] ?? 'bg-gray-100 text-gray-600';
-                                @endphp
-                                <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize">
-                                    {{ str_replace('_', ' ', $p->status) }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-center space-x-1">
-                                <a href="{{ route('karyawan.pinjaman.show', $p) }}"
-                                   class="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3 py-1 rounded transition">
-                                    <i class="fa fa-eye mr-1"></i>Detail
-                                </a>
-                                @if($p->status === 'aktif')
-                                <a href="{{ route('karyawan.pembayaran.create', $p) }}"
-                                   class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1 rounded transition">
-                                    <i class="fa fa-money-bill mr-1"></i>Bayar
-                                </a>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+
+                {{-- Desktop Table --}}
+                <div class="hidden sm:block overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3 text-left">No. Pinjaman</th>
+                                <th class="px-4 py-3 text-right">Jumlah</th>
+                                <th class="px-4 py-3 text-center">Tenor</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($nasabah->pinjaman as $p)
+                            @php
+                                $badge = [
+                                    'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
+                                    'aktif'             => 'bg-green-100 text-green-700',
+                                    'lunas'             => 'bg-blue-100 text-blue-700',
+                                    'ditolak'           => 'bg-red-100 text-red-700',
+                                ][$p->status] ?? 'bg-gray-100 text-gray-600';
+                            @endphp
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-4 py-3">
+                                    <span class="font-mono text-xs text-blue-600">{{ $p->no_pinjaman }}</span>
+                                    <div class="text-xs text-gray-400 mt-0.5">
+                                        {{ \Carbon\Carbon::parse($p->tanggal_pengajuan)->format('d M Y') }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-right font-medium text-gray-800">
+                                    Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-600">{{ $p->tenor_bulan }} bln</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize">
+                                        {{ str_replace('_', ' ', $p->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center space-x-1">
+                                    <a href="{{ route('karyawan.pinjaman.show', $p) }}"
+                                       class="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3 py-1 rounded transition">
+                                        <i class="fa fa-eye mr-1"></i>Detail
+                                    </a>
+                                    @if($p->status === 'aktif')
+                                    <a href="{{ route('karyawan.pembayaran.create', $p) }}"
+                                       class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1 rounded transition">
+                                        <i class="fa fa-money-bill mr-1"></i>Bayar
+                                    </a>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Mobile Cards --}}
+                <div class="sm:hidden divide-y divide-gray-100">
+                    @foreach($nasabah->pinjaman as $p)
+                    @php
+                        $badge = [
+                            'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
+                            'aktif'             => 'bg-green-100 text-green-700',
+                            'lunas'             => 'bg-blue-100 text-blue-700',
+                            'ditolak'           => 'bg-red-100 text-red-700',
+                        ][$p->status] ?? 'bg-gray-100 text-gray-600';
+                    @endphp
+                    <div class="px-4 py-4">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                                <span class="font-mono text-xs text-blue-600 block">{{ $p->no_pinjaman }}</span>
+                                <span class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($p->tanggal_pengajuan)->format('d M Y') }}</span>
+                            </div>
+                            <span class="{{ $badge }} text-xs px-2 py-1 rounded-full capitalize flex-shrink-0">
+                                {{ str_replace('_', ' ', $p->status) }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-4 text-sm mb-3">
+                            <span class="font-medium text-gray-800">Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}</span>
+                            <span class="text-gray-500 text-xs">{{ $p->tenor_bulan }} bln</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{{ route('karyawan.pinjaman.show', $p) }}"
+                               class="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3 py-1.5 rounded transition">
+                                <i class="fa fa-eye mr-1"></i>Detail
+                            </a>
+                            @if($p->status === 'aktif')
+                            <a href="{{ route('karyawan.pembayaran.create', $p) }}"
+                               class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded transition">
+                                <i class="fa fa-money-bill mr-1"></i>Bayar
+                            </a>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
                 @endif
             </div>
         </div>
@@ -309,7 +340,7 @@
 <div id="fotoModal"
      class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden flex items-center justify-center p-4"
      onclick="closeModal()">
-    <div class="relative max-w-2xl w-full" onclick="event.stopPropagation()">
+    <div class="relative max-w-2xl w-full mx-4" onclick="event.stopPropagation()">
         <div class="bg-white rounded-xl overflow-hidden shadow-2xl">
             <div class="flex items-center justify-between px-4 py-3 border-b">
                 <h4 id="modalTitle" class="font-semibold text-gray-800 text-sm"></h4>

@@ -1,15 +1,15 @@
 @extends('layouts.karyawan')
 @section('title', 'Tambah Nasabah')
 @section('page-title', 'Input Data Nasabah Baru')
- 
+
 @section('content')
-<div class="py-4 max-w-2xl">
-<div class="bg-white rounded-xl shadow p-6">
+<div class="py-4">
+<div class="bg-white rounded-xl shadow p-4 md:p-6 max-w-2xl">
 <form method="POST" action="{{ route('karyawan.nasabah.store') }}" enctype="multipart/form-data">
     @csrf
- 
+
     <h4 class="font-semibold text-gray-700 mb-3 border-b pb-2">Data Pribadi</h4>
-    <div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">No. KTP <span class="text-red-500">*</span></label>
             <input type="text" name="no_ktp" value="{{ old('no_ktp') }}" maxlength="16"
@@ -46,14 +46,14 @@
                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none">
         </div>
     </div>
- 
+
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-1">Alamat <span class="text-red-500">*</span></label>
         <textarea name="alamat" rows="2"
                   class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none">{{ old('alamat') }}</textarea>
     </div>
- 
-    <div class="grid grid-cols-2 gap-4 mb-6">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Kota <span class="text-red-500">*</span></label>
             <input type="text" name="kota" value="{{ old('kota') }}"
@@ -75,8 +75,8 @@
                    class="w-full border rounded-lg px-3 py-2 text-sm">
         </div>
     </div>
- 
-    <div class="flex gap-3">
+
+    <div class="flex flex-wrap gap-3">
         <button type="submit"
                 class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-medium">
             <i class="fa fa-save mr-1"></i> Simpan Nasabah

@@ -76,7 +76,7 @@
         </div>
     </form>
 
-    {{-- TABLE --}}
+    {{-- EMPTY STATE --}}
     @if($pinjamanDenda->isEmpty())
     <div class="bg-white rounded-xl border border-gray-100 py-16 text-center">
         <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -92,7 +92,9 @@
     </div>
 
     @else
-    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+
+    {{-- ===== DESKTOP TABLE (md ke atas) ===== --}}
+    <div class="hidden md:block bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -143,17 +145,13 @@
 
                         {{-- Jatuh Tempo --}}
                         <td class="px-4 py-3.5">
-                            <div class="flex items-center gap-2">
-                                <div>
-                                    <p class="text-gray-700 font-medium">
-                                        {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->translatedFormat('d M Y') }}
-                                    </p>
-                                    <p class="text-xs text-red-500 mt-0.5">
-                                        <i class="fa fa-clock mr-0.5"></i>
-                                        {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->diffForHumans() }}
-                                    </p>
-                                </div>
-                            </div>
+                            <p class="text-gray-700 font-medium">
+                                {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->translatedFormat('d M Y') }}
+                            </p>
+                            <p class="text-xs text-red-500 mt-0.5">
+                                <i class="fa fa-clock mr-0.5"></i>
+                                {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->diffForHumans() }}
+                            </p>
                         </td>
 
                         {{-- Hari Terlambat --}}
@@ -205,6 +203,93 @@
             </div>
         </div>
     </div>
+
+    {{-- ===== MOBILE CARDS (di bawah md) ===== --}}
+    <div class="flex flex-col gap-3 md:hidden">
+        @foreach($pinjamanDenda as $i => $pinjaman)
+        <div class="bg-white rounded-xl border border-gray-100 p-4">
+
+            {{-- Header card: avatar + nama + badge terlambat --}}
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center
+                                text-emerald-700 font-bold text-sm flex-shrink-0">
+                        {{ strtoupper(substr($pinjaman->nasabah->nama_lengkap ?? 'N', 0, 1)) }}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-gray-800 text-sm leading-tight truncate">
+                            {{ $pinjaman->nasabah->nama_lengkap ?? '-' }}
+                        </p>
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            NIK: {{ $pinjaman->nasabah->no_ktp ?? '-' }}
+                        </p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0
+                    {{ $pinjaman->hari_terlambat >= 30
+                        ? 'bg-red-100 text-red-700'
+                        : ($pinjaman->hari_terlambat >= 7
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-yellow-100 text-yellow-700') }}">
+                    <i class="fa fa-hourglass-half text-xs"></i>
+                    {{ $pinjaman->hari_terlambat }} hari
+                </span>
+            </div>
+
+            {{-- Detail row --}}
+            <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                <div>
+                    <p class="text-xs text-gray-400 mb-0.5">Pinjaman</p>
+                    <p class="font-semibold text-gray-700">
+                        Rp {{ number_format($pinjaman->jumlah_pinjaman ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-400">{{ $pinjaman->tenor->lama_bulan ?? '-' }} bulan</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 mb-0.5">Jatuh Tempo</p>
+                    <p class="font-medium text-gray-700">
+                        {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->translatedFormat('d M Y') }}
+                    </p>
+                    <p class="text-xs text-red-500 mt-0.5">
+                        <i class="fa fa-clock mr-0.5"></i>
+                        {{ \Carbon\Carbon::parse($pinjaman->tanggal_jatuh_tempo)->diffForHumans() }}
+                    </p>
+                </div>
+            </div>
+
+            {{-- Footer card: total denda + tombol bayar --}}
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div>
+                    <p class="text-xs text-gray-400">Total Denda</p>
+                    <p class="font-bold text-red-600">
+                        Rp {{ number_format($pinjaman->total_denda, 0, ',', '.') }}
+                    </p>
+                </div>
+                <a href="{{ route('karyawan.pembayaran.create', $pinjaman->id) }}"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600
+                          hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition">
+                    <i class="fa fa-money-bill text-xs"></i>
+                    Bayar
+                </a>
+            </div>
+
+        </div>
+        @endforeach
+
+        {{-- Footer mobile --}}
+        <div class="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center justify-between">
+            <p class="text-xs text-gray-400">
+                {{ $pinjamanDenda->count() }} pinjaman kena denda
+            </p>
+            <div class="flex items-center gap-2 text-sm font-semibold">
+                <span class="text-gray-500">Total:</span>
+                <span class="text-red-600">
+                    Rp {{ number_format($totalDendaKeseluruhan, 0, ',', '.') }}
+                </span>
+            </div>
+        </div>
+    </div>
+
     @endif
 
 </div>

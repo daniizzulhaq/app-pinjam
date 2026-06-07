@@ -13,7 +13,6 @@
         </a>
     </div>
 
-    {{-- WAJIB enctype untuk upload file --}}
     <form method="POST" action="{{ route('karyawan.nasabah.update', $nasabah) }}"
           enctype="multipart/form-data">
         @csrf @method('PUT')
@@ -21,20 +20,17 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
             {{-- ===== KOLOM KIRI: Foto ===== --}}
-            <div class="lg:col-span-1 space-y-4">
+            <div class="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
 
                 {{-- Foto Nasabah --}}
-                <div class="bg-white rounded-xl shadow p-6">
+                <div class="bg-white rounded-xl shadow p-5 md:p-6">
                     <h3 class="text-sm font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-100">
                         📷 Foto Nasabah
                     </h3>
-
-                    {{-- Preview foto saat ini --}}
                     <div class="mb-3">
                         @if($nasabah->foto_nasabah)
                             <img src="{{ asset('storage/' . $nasabah->foto_nasabah) }}"
-                                 id="preview_foto_nasabah"
-                                 alt="Foto Nasabah"
+                                 id="preview_foto_nasabah" alt="Foto Nasabah"
                                  class="w-full h-44 object-cover rounded-lg border border-gray-200">
                         @else
                             <div id="preview_foto_nasabah_placeholder"
@@ -46,7 +42,6 @@
                                  class="w-full h-44 object-cover rounded-lg border border-gray-200 hidden">
                         @endif
                     </div>
-
                     <label class="block text-xs font-medium text-gray-600 mb-1">
                         {{ $nasabah->foto_nasabah ? 'Ganti Foto Nasabah' : 'Upload Foto Nasabah' }}
                     </label>
@@ -60,16 +55,14 @@
                 </div>
 
                 {{-- Foto KTP --}}
-                <div class="bg-white rounded-xl shadow p-6">
+                <div class="bg-white rounded-xl shadow p-5 md:p-6">
                     <h3 class="text-sm font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-100">
                         🪪 Foto KTP
                     </h3>
-
                     <div class="mb-3">
                         @if($nasabah->foto_ktp)
                             <img src="{{ asset('storage/' . $nasabah->foto_ktp) }}"
-                                 id="preview_foto_ktp"
-                                 alt="Foto KTP"
+                                 id="preview_foto_ktp" alt="Foto KTP"
                                  class="w-full h-44 object-cover rounded-lg border border-gray-200">
                         @else
                             <div id="preview_foto_ktp_placeholder"
@@ -81,7 +74,6 @@
                                  class="w-full h-44 object-cover rounded-lg border border-gray-200 hidden">
                         @endif
                     </div>
-
                     <label class="block text-xs font-medium text-gray-600 mb-1">
                         {{ $nasabah->foto_ktp ? 'Ganti Foto KTP' : 'Upload Foto KTP' }}
                     </label>
@@ -98,16 +90,15 @@
 
             {{-- ===== KOLOM KANAN: Data Nasabah ===== --}}
             <div class="lg:col-span-2">
-                <div class="bg-white rounded-xl shadow p-6">
+                <div class="bg-white rounded-xl shadow p-4 md:p-6">
 
-                    <div class="mb-6 pb-4 border-b border-gray-100">
+                    <div class="mb-5 pb-4 border-b border-gray-100">
                         <h2 class="text-base font-semibold text-gray-800">Data Pribadi</h2>
                         <p class="text-sm text-gray-400 mt-0.5">Perubahan akan langsung tersimpan</p>
                     </div>
 
                     {{-- ROW 1 --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Nama Lengkap <span class="text-red-500">*</span>
@@ -120,7 +111,6 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 No KTP (NIK) <span class="text-red-500">*</span>
@@ -133,12 +123,10 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                     </div>
 
                     {{-- ROW 2 --}}
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 mb-4 md:mb-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Tempat Lahir <span class="text-red-500">*</span>
@@ -151,7 +139,6 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Tanggal Lahir <span class="text-red-500">*</span>
@@ -163,7 +150,6 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Jenis Kelamin <span class="text-red-500">*</span>
@@ -178,12 +164,10 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                     </div>
 
                     {{-- ROW 3 --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 No HP <span class="text-red-500">*</span>
@@ -196,7 +180,6 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Pekerjaan</label>
                             <input type="text" name="pekerjaan"
@@ -204,12 +187,10 @@
                                    placeholder="Opsional"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                         </div>
-
                     </div>
 
                     {{-- ROW 4 --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Kota <span class="text-red-500">*</span>
@@ -222,7 +203,6 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Provinsi <span class="text-red-500">*</span>
@@ -235,11 +215,10 @@
                                 <p class="text-red-500 text-xs mt-1"><i class="fa fa-exclamation-circle mr-1"></i>{{ $message }}</p>
                             @enderror
                         </div>
-
                     </div>
 
                     {{-- Alamat --}}
-                    <div class="mb-6">
+                    <div class="mb-5 md:mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
                             Alamat <span class="text-red-500">*</span>
                         </label>
@@ -251,7 +230,7 @@
                     </div>
 
                     {{-- ACTIONS --}}
-                    <div class="flex items-center gap-3 pt-4 border-t border-gray-100">
+                    <div class="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                         <button type="submit"
                                 class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition">
                             <i class="fa fa-save mr-1"></i> Simpan Perubahan
@@ -274,7 +253,6 @@
 function previewImage(input, previewId, placeholderId) {
     const preview     = document.getElementById(previewId);
     const placeholder = document.getElementById(placeholderId);
-
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
