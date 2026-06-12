@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pinjaman;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PinjamanController extends Controller
 {
@@ -77,13 +78,13 @@ class PinjamanController extends Controller
         ];
 
         if ($validated['action'] === 'disetujui') {
-            $tipe = $pinjaman->tenor_tipe ?? 'bulanan';
-
-            // Gunakan tanggal_pengajuan sebagai acuan, bukan now()
+            $tipe         = $pinjaman->tenor_tipe ?? 'bulanan';
             $tanggalMulai = $pinjaman->tanggal_pengajuan;
 
+            // Harian: hari pertama sudah terhitung, jadi -1
+            // Contoh: pinjam tgl 1, tenor 10 hari → jatuh tempo tgl 10
             $tanggalJatuhTempo = $tipe === 'harian'
-                ? $tanggalMulai->copy()->addDays($pinjaman->tenor_bulan)
+                ? $tanggalMulai->copy()->addDays($pinjaman->tenor_bulan - 1)
                 : $tanggalMulai->copy()->addMonths($pinjaman->tenor_bulan);
 
             $updateData['status']              = 'aktif';
@@ -108,5 +109,20 @@ class PinjamanController extends Controller
             ->paginate(15);
 
         return view('admin.pinjaman.jatuh-tempo', compact('pinjaman'));
+    }
+
+    public function destroy(Pinjaman $pinjaman)
+    {
+        if (!in_array($pinjaman->status, ['menunggu_approval', 'ditolak'])) {
+            return back()->with('error', 'Pinjaman aktif/lunas tidak bisa dihapus.');
+        }
+
+        if ($pinjaman->bukti_transfer_admin) {
+            Storage::disk('public')->delete($pinjaman->bukti_transfer_admin);
+        }
+
+        $pinjaman->delete();
+
+        return back()->with('success', 'Data pinjaman berhasil dihapus.');
     }
 }

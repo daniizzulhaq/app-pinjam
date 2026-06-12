@@ -33,7 +33,6 @@ class Pinjaman extends Model
         'catatan_pengajuan',
         'catatan_approval',
         'approved_by',
-        // Bukti transfer
         'bukti_transfer_admin',
         'tgl_transfer_admin',
         'bukti_transfer_karyawan',
@@ -68,12 +67,21 @@ class Pinjaman extends Model
 
     public static function generateNoPinjaman(): string
     {
-        $tahun = date('Y');
-        $bulan = date('m');
-        $last  = static::whereYear('created_at', $tahun)
-                        ->whereMonth('created_at', $bulan)
-                        ->count();
-        return 'PIN-' . $tahun . $bulan . '-' . str_pad($last + 1, 4, '0', STR_PAD_LEFT);
+        $prefix = 'PIN-' . now()->format('Ym') . '-';
+
+        $last = static::withTrashed()
+            ->where('no_pinjaman', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING(no_pinjaman, ?) AS UNSIGNED) DESC', [strlen($prefix) + 1])
+            ->value('no_pinjaman');
+
+        $next = $last ? (int) substr($last, strlen($prefix)) + 1 : 1;
+
+        do {
+            $no = $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
+            $next++;
+        } while (static::withTrashed()->where('no_pinjaman', $no)->exists());
+
+        return $no;
     }
 
     // =====================================================
@@ -89,12 +97,12 @@ class Pinjaman extends Model
         return $query->where('status', 'aktif');
     }
 
-  public function scopeJatuhTempo($query)
-{
-    return $query->where('status', 'aktif')
-                 ->whereDate('tanggal_jatuh_tempo', '>=', today())
-                 ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(30));
-}
+    public function scopeJatuhTempo($query)
+    {
+        return $query->where('status', 'aktif')
+                     ->whereDate('tanggal_jatuh_tempo', '>=', today())
+                     ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(30));
+    }
 
     // =====================================================
     // ACCESSOR

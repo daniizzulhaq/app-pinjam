@@ -104,13 +104,6 @@ class PembayaranController extends Controller
         $denda         = $dendaDiwaive ? 0 : $dendaAsli;
         $alasanWaive   = $dendaDiwaive ? ($validated['alasan_waive'] ?? null) : null;
 
-        // =============================================
-        // HARIAN
-        // bayar_bunga_saja = bayar bunga periode ini, jatuh tempo mundur,
-        //                    bunga periode baru dihitung ulang dari pokok yang sama
-        // bayar_lunas      = bayar pokok + bunga, pinjaman selesai
-        // tidak_bayar      = catat tunggakan
-        // =============================================
         if ($pinjaman->tenor_tipe === 'harian') {
             if ($validated['jenis_pembayaran'] === 'bayar_bunga_saja') {
                 $pokokDibayar = 0;
@@ -179,24 +172,22 @@ class PembayaranController extends Controller
             'bukti_pembayaran'            => $buktiPath,
         ]);
 
-        // =============================================
         // UPDATE STATUS & JATUH TEMPO PINJAMAN
-        // =============================================
         if ($pinjaman->tenor_tipe === 'harian') {
             if ($validated['jenis_pembayaran'] === 'bayar_lunas') {
-                // Pinjaman selesai
                 $pinjaman->update(['status' => 'lunas']);
 
             } elseif ($validated['jenis_pembayaran'] === 'bayar_bunga_saja') {
-                // Mundurkan jatuh tempo sesuai tenor hari
+                // Perpanjang: jatuh tempo lama + tenor hari penuh
+                // (hari jatuh tempo lama sudah habis, tenor baru dihitung mulai hari berikutnya)
+                // Contoh: JT tgl 10, tenor 10 hari → JT baru tgl 20
                 $jatuhTempoMundur = Carbon::parse($pinjaman->tanggal_jatuh_tempo)
                     ->addDays($pinjaman->tenor_bulan);
 
                 // Hitung ulang bunga periode baru dari pokok yang sama
-                // (bunga = pokok × persentase bunga, sama seperti awal)
-                $bungaBaru        = $pinjaman->jumlah_pinjaman * ($pinjaman->bunga_persen / 100);
+                $bungaBaru         = $pinjaman->jumlah_pinjaman * ($pinjaman->bunga_persen / 100);
                 $totalPinjamanBaru = $pinjaman->jumlah_pinjaman + $bungaBaru;
-                $cicilanBaru      = $totalPinjamanBaru / $pinjaman->tenor_bulan;
+                $cicilanBaru       = $totalPinjamanBaru / $pinjaman->tenor_bulan;
 
                 $pinjaman->update([
                     'tanggal_jatuh_tempo' => $jatuhTempoMundur,

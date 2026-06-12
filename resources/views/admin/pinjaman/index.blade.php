@@ -46,10 +46,12 @@
                     $tipe   = $p->tenor_tipe ?? 'bulanan';
                     $satuan = $tipe === 'harian' ? 'hr' : 'bln';
                     $badge  = [
-                        'menunggu_approval' => 'bg-yellow-100 text-yellow-700',
-                        'aktif'             => 'bg-green-100 text-green-700',
-                        'lunas'             => 'bg-blue-100 text-blue-700',
-                        'ditolak'           => 'bg-red-100 text-red-700',
+                        'menunggu_approval'          => 'bg-yellow-100 text-yellow-700',
+                        'menunggu_transfer_karyawan' => 'bg-orange-100 text-orange-700',
+                        'menunggu_konfirmasi'        => 'bg-purple-100 text-purple-700',
+                        'aktif'                      => 'bg-green-100 text-green-700',
+                        'lunas'                      => 'bg-blue-100 text-blue-700',
+                        'ditolak'                    => 'bg-red-100 text-red-700',
                     ][$p->status] ?? 'bg-gray-100 text-gray-600';
                 @endphp
                 <tr class="hover:bg-gray-50">
@@ -73,10 +75,24 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <a href="{{ route('admin.pinjaman.show', $p) }}"
-                           class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded">
-                            Detail
-                        </a>
+                        <div class="flex items-center justify-center gap-1">
+                            <a href="{{ route('admin.pinjaman.show', $p) }}"
+                               class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded">
+                                Detail
+                            </a>
+
+                            @if(in_array($p->status, ['menunggu_approval', 'ditolak']))
+                            <form action="{{ route('admin.pinjaman.destroy', $p) }}" method="POST"
+                                  onsubmit="return confirm('Hapus pinjaman {{ $p->no_pinjaman }}? Tindakan ini tidak bisa dibatalkan.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded">
+                                    Hapus
+                                </button>
+                            </form>
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @empty
