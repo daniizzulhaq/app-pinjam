@@ -56,8 +56,12 @@
                 @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-xs text-blue-600">{{ $p->no_pinjaman }}</td>
-                    <td class="px-4 py-3 font-medium">{{ $p->nasabah->nama_lengkap }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $p->karyawan->name }}</td>
+                    <td class="px-4 py-3 font-medium">
+                        {{ $p->nasabah->nama_lengkap ?? '(Nasabah tidak ditemukan)' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">
+                        {{ $p->karyawan->name ?? '-' }}
+                    </td>
                     <td class="px-4 py-3 text-right font-medium">
                         Rp {{ number_format($p->jumlah_pinjaman, 0, ',', '.') }}
                     </td>
